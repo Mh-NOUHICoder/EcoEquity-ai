@@ -1,0 +1,3 @@
+{"type":"FeatureCollection", "features": [
+{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[-3.982544,40.609792],[-3.982544,40.158294],[-3.289032,40.158294],[-3.289032,40.609792],[-3.982544,40.609792]]]},"properties":{"@geometry-type":"groundoverlay","name":"Sentinel-Hub overlay","icon":"image.png"}}
+]}
