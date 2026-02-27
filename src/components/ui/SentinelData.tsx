@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { useApp } from '@/context/AppContext';
 
 export default function SentinelData() {
+  const { state } = useApp();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,8 +22,12 @@ export default function SentinelData() {
         start.setMonth(end.getMonth() - 1);
         const fmt = (d: Date) => d.toISOString().split('.')[0] + 'Z';
 
+        const coords = state.userLocation || [52.5, 13.3]; // Default to Berlin if no location
+        const [lat, lng] = coords;
+        const bbox = `${lng - 0.1},${lat - 0.1},${lng + 0.1},${lat + 0.1}`;
+
         const body = {
-          bbox: '13.3,52.5,13.5,52.6',
+          bbox,
           datetime: `${fmt(start)}/${fmt(end)}`,
           collections: 'sentinel-2-l2a',
           limit: 5,
@@ -61,7 +67,7 @@ export default function SentinelData() {
     }
 
     fetchData();
-  }, []);
+  }, [state.userLocation]);
 
   if (loading) {
     return (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useApp } from "@/context/AppContext";
 import type { Feature, FeatureCollection } from "geojson";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -161,6 +162,7 @@ const FeatureInspector: React.FC<{ feature: StacFeature; index: number }> = ({
 };
 
 export default function SentinelDebugPage() {
+  const { state } = useApp();
   const [data, setData] = useState<StacFeatureCollection | null>(null);
   const [rawJson, setRawJson] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
@@ -182,8 +184,12 @@ export default function SentinelDebugPage() {
       const fmt = (d: Date) => d.toISOString().split('.')[0] + 'Z';
       const dynamicDatetime = `${fmt(start)}/${fmt(end)}`;
 
+      const coords = state.userLocation || [52.51, 13.38];
+      const [lat, lng] = coords;
+      const bbox = [lng - 0.5, lat - 0.5, lng + 0.5, lat + 0.5];
+
       const testBody = {
-        bbox: [13, 52, 14, 53],
+        bbox,
         datetime: dynamicDatetime,
         collections: ["sentinel-2-l2a"],
         limit: 5,
@@ -249,7 +255,7 @@ export default function SentinelDebugPage() {
     };
 
     fetchData();
-  }, []);
+  }, [state.userLocation]);
 
   const hasValidationErrors = validationResults.some((r: ValidationResult) => r.isError);
 

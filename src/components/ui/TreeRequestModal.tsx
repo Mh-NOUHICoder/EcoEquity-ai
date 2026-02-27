@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { X, TreePine, MapPin, User, Mail, FileText, CheckCircle2 } from "lucide-react";
+import { X, TreePine, MapPin, User, Mail, FileText, CheckCircle2, Sprout, ShieldCheck } from "lucide-react";
 import { useState, FormEvent } from "react";
 import { useApp } from "@/context/AppContext";
 import { submitTreeRequest } from "@/lib/supabase/supabase";
@@ -27,8 +27,8 @@ export default function TreeRequestModal() {
     if (!form.name.trim()) newErrors.name = "Name is required";
     if (!form.email.trim() || !/\S+@\S+\.\S+/.test(form.email))
       newErrors.email = "Valid email required";
-    if (!form.reason.trim() || form.reason.length < 20)
-      newErrors.reason = "Please provide at least 20 characters";
+    if (!form.reason.trim() || form.reason.length < 10)
+      newErrors.reason = "Please provide more detail (min 10 chars)";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -41,14 +41,29 @@ export default function TreeRequestModal() {
     try {
       await submitTreeRequest({
         ...form,
-        district: state.treeModalDistrict,
-        coordinates: state.treeModalCoords || [52.51, 13.38],
+        district: state.treeModalDistrict || "Global Sector",
+        coordinates: state.treeModalCoords || [20.0, 0.0],
       });
+      
+      const newReport = {
+        id: Math.random().toString(36).substr(2, 9),
+        author: form.name || "Anonymous Operative",
+        avatar: (form.name || "A").charAt(0).toUpperCase(),
+        district: state.treeModalDistrict || "Global Sector",
+        message: form.reason,
+        heatLevel: "moderate" as const, // Defaulting to moderate for new reports
+        ndvi: 0.35,
+        timestamp: "just now",
+        upvotes: 0,
+        coordinates: state.treeModalCoords || [20.0, 0.0],
+      };
+
+      dispatch({ type: "ADD_REPORT", payload: newReport });
       dispatch({ type: "INCREMENT_REQUESTS" });
       setSubmitted(true);
-    } catch (e) {
-      console.error(e);
-      setErrors({ submit: "Failed to submit request. Please try again." });
+    } catch (err) {
+      console.error(err);
+      setErrors({ submit: "Communication link failed. Retry protocol." });
     } finally {
       setLoading(false);
     }
@@ -58,163 +73,161 @@ export default function TreeRequestModal() {
     <AnimatePresence>
       {state.showTreeModal && (
         <>
+          {/* Enhanced Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={close}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+            className="fixed inset-0 bg-black/80 backdrop-blur-xl z-[9998]"
           />
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.92, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md z-50 px-4"
-          >
-            <div className="glass-card rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
-              <div className="relative p-5 border-b border-white/[0.06]">
-                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-transparent" />
-                <div className="relative flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center">
-                      <TreePine size={16} className="text-emerald-400" />
+          {/* Centered Modal Container */}
+          <div className="fixed inset-0 flex items-center justify-center p-4 z-[9999] pointer-events-none">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 40, rotateX: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0, rotateX: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="w-full max-w-lg pointer-events-auto"
+            >
+              <div className="relative bg-[#0A0F1A]/90 border border-white/10 rounded-[2.5rem] overflow-hidden shadow-[0_50px_100px_rgba(0,0,0,0.8)] backdrop-blur-3xl">
+                
+                {/* Top Gloss Header */}
+                <div className="relative p-6 lg:p-8 border-b border-white/5 bg-gradient-to-br from-emerald-500/5 to-transparent">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.1)]">
+                        <Sprout size={24} className="text-emerald-400" />
+                      </div>
+                      <div className="flex flex-col">
+                        <h2 className="text-lg lg:text-xl font-black text-white uppercase tracking-tighter">
+                          Thermal Mitigation Request
+                        </h2>
+                        <div className="flex items-center gap-2">
+                           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                           <span className="text-[10px] font-black text-white/40 uppercase tracking-widest leading-none">
+                             Sector: {state.treeModalDistrict || "Global_Unassigned"}
+                           </span>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <h2 className="font-display text-base text-white">
-                        Request a Tree
-                      </h2>
-                      <p className="text-[11px] text-emerald-400/60 font-mono">
-                        {state.treeModalDistrict}
-                      </p>
-                    </div>
+                    <button
+                      onClick={close}
+                      className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-all active:scale-90"
+                    >
+                      <X size={20} />
+                    </button>
                   </div>
-                  <button
-                    onClick={close}
-                    className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-white/40 hover:text-white/70 hover:bg-white/[0.08] transition-all"
-                  >
-                    <X size={14} />
-                  </button>
+                </div>
+
+                <div className="p-6 lg:p-8">
+                  <AnimatePresence mode="wait">
+                    {submitted ? (
+                      <motion.div
+                        key="success"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex flex-col items-center py-10 text-center"
+                      >
+                        <div className="w-20 h-20 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(16,185,129,0.2)]">
+                          <CheckCircle2 size={40} className="text-emerald-400" />
+                        </div>
+                        <h3 className="text-2xl font-black text-white uppercase tracking-tight mb-3">
+                          Protocol Confirmed
+                        </h3>
+                        <p className="text-white/40 text-sm leading-relaxed max-w-sm mb-8 font-medium">
+                          Your request has been uplinked to the <span className="text-emerald-400">Canopy Neural Network</span>. 
+                          Civil planning units will prioritize this sector for emergency reforestation.
+                        </p>
+                        <button
+                          onClick={close}
+                          className="w-full py-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-black uppercase tracking-widest hover:bg-emerald-500/20 transition-all"
+                        >
+                          Terminate Link
+                        </button>
+                      </motion.div>
+                    ) : (
+                      <motion.form
+                        key="form"
+                        onSubmit={handleSubmit}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="space-y-6"
+                      >
+                        {state.treeModalCoords && (
+                          <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/5 border border-white/10">
+                            <MapPin size={14} className="text-cyan-400" />
+                            <div className="flex flex-col">
+                               <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">Target_Coordinates</span>
+                               <span className="text-[11px] font-mono font-bold text-white/60">
+                                 {state.treeModalCoords[0].toFixed(6)}°N // {state.treeModalCoords[1].toFixed(6)}°E
+                               </span>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField icon={<User size={14} />} label="Operative Name" error={errors.name}>
+                              <input
+                                type="text"
+                                placeholder="Anonymous-01"
+                                value={form.name}
+                                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                                className="w-full bg-transparent text-sm text-white placeholder-white/10 outline-none font-bold"
+                              />
+                            </FormField>
+                            <FormField icon={<Mail size={14} />} label="Communication ID" error={errors.email}>
+                              <input
+                                type="email"
+                                placeholder="ops@eco-network.io"
+                                value={form.email}
+                                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                                className="w-full bg-transparent text-sm text-white placeholder-white/10 outline-none font-bold"
+                              />
+                            </FormField>
+                        </div>
+
+                        <FormField icon={<FileText size={14} />} label="Intelligence Report" error={errors.reason}>
+                          <textarea
+                            placeholder="Describe thermal stress or ecological deficit..."
+                            rows={3}
+                            value={form.reason}
+                            onChange={(e) => setForm({ ...form, reason: e.target.value })}
+                            className="w-full bg-transparent text-sm text-white placeholder-white/10 outline-none resize-none font-medium leading-relaxed"
+                          />
+                        </FormField>
+
+                        <div className="flex items-center gap-3 px-4 py-3 border border-emerald-500/20 bg-emerald-500/5 rounded-2xl">
+                           <ShieldCheck size={16} className="text-emerald-400" />
+                           <p className="text-[9px] font-black text-emerald-400/60 uppercase tracking-widest leading-tight">
+                             Data will be encrypted and shared with Global Eco-Justice councils for immediate action.
+                           </p>
+                        </div>
+
+                        {errors.submit && <p className="text-[11px] text-red-400 text-center font-black uppercase tracking-widest">{errors.submit}</p>}
+
+                        <motion.button
+                          type="submit"
+                          disabled={loading}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          className="w-full py-5 rounded-[1.75rem] bg-gradient-to-r from-emerald-600 to-emerald-500 border border-white/20 text-white text-xs font-black uppercase tracking-[0.2em] shadow-2xl hover:shadow-emerald-500/20 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
+                        >
+                          {loading ? (
+                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          ) : (
+                            <TreePine size={18} />
+                          )}
+                          {loading ? "Transmitting..." : "Initiate Reforestation Request"}
+                        </motion.button>
+                      </motion.form>
+                    )}
+                  </AnimatePresence>
                 </div>
               </div>
-
-              <div className="p-5">
-                <AnimatePresence mode="wait">
-                  {submitted ? (
-                    <motion.div
-                      key="success"
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="flex flex-col items-center py-8 text-center"
-                    >
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-                        className="w-16 h-16 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center mb-4"
-                      >
-                        <CheckCircle2 size={28} className="text-emerald-400" />
-                      </motion.div>
-                      <h3 className="font-display text-lg text-white mb-2">
-                        Request Submitted!
-                      </h3>
-                      <p className="text-sm text-white/50 leading-relaxed max-w-xs">
-                        Your tree request for{" "}
-                        <span className="text-emerald-400">
-                          {state.treeModalDistrict}
-                        </span>{" "}
-                        has been logged. The city council will review it.
-                      </p>
-                      <button
-                        onClick={close}
-                        className="mt-6 px-5 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-sm font-medium hover:bg-emerald-500/25 transition-all"
-                      >
-                        Close
-                      </button>
-                    </motion.div>
-                  ) : (
-                    <motion.form
-                      key="form"
-                      onSubmit={handleSubmit}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="space-y-4"
-                    >
-                      {state.treeModalCoords && (
-                        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06]">
-                          <MapPin size={12} className="text-emerald-400 shrink-0" />
-                          <span className="text-[11px] font-mono text-white/40">
-                            {state.treeModalCoords[0].toFixed(4)},{" "}
-                            {state.treeModalCoords[1].toFixed(4)}
-                          </span>
-                        </div>
-                      )}
-
-                      <FormField
-                        icon={<User size={13} />}
-                        label="Full Name"
-                        error={errors.name}
-                      >
-                        <input
-                          type="text"
-                          placeholder="Your name"
-                          value={form.name}
-                          onChange={(e) => setForm({ ...form, name: e.target.value })}
-                          className="w-full bg-transparent text-sm text-white placeholder-white/20 outline-none"
-                        />
-                      </FormField>
-
-                      <FormField
-                        icon={<Mail size={13} />}
-                        label="Email"
-                        error={errors.email}
-                      >
-                        <input
-                          type="email"
-                          placeholder="you@example.com"
-                          value={form.email}
-                          onChange={(e) => setForm({ ...form, email: e.target.value })}
-                          className="w-full bg-transparent text-sm text-white placeholder-white/20 outline-none"
-                        />
-                      </FormField>
-
-                      <FormField
-                        icon={<FileText size={13} />}
-                        label="Reason for Request"
-                        error={errors.reason}
-                      >
-                        <textarea
-                          placeholder="Describe the heat impact in your area..."
-                          rows={3}
-                          value={form.reason}
-                          onChange={(e) => setForm({ ...form, reason: e.target.value })}
-                          className="w-full bg-transparent text-sm text-white placeholder-white/20 outline-none resize-none"
-                        />
-                      </FormField>
-
-                      {errors.submit && <p className="text-[11px] text-red-400 text-center">{errors.submit}</p>}
-
-                      <motion.button
-                        type="submit"
-                        disabled={loading}
-                        whileHover={{ scale: 1.01 }}
-                        whileTap={{ scale: 0.99 }}
-                        className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600/80 to-emerald-500/80 border border-emerald-500/40 text-white text-sm font-medium hover:from-emerald-500/80 hover:to-emerald-400/80 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                      >
-                        {loading ? (
-                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        ) : (
-                          <TreePine size={14} />
-                        )}
-                        {loading ? "Submitting..." : "Submit Tree Request"}
-                      </motion.button>
-                    </motion.form>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          </div>
         </>
       )}
     </AnimatePresence>
@@ -223,19 +236,19 @@ export default function TreeRequestModal() {
 
 function FormField({ icon, label, error, children }: { icon: React.ReactNode; label: string; error?: string; children: React.ReactNode; }) {
   return (
-    <div>
-      <label className="text-[10px] font-mono text-white/30 uppercase tracking-wider mb-1.5 flex items-center gap-1">
-        <span className="text-white/20">{icon}</span>
+    <div className="flex flex-col gap-1.5">
+      <label className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] flex items-center gap-2 px-1">
+        {icon}
         {label}
       </label>
       <div
-        className={`px-3 py-2.5 rounded-xl bg-white/[0.03] border transition-colors ${
-          error ? "border-red-500/40" : "border-white/[0.08] focus-within:border-emerald-500/40"
+        className={`px-4 py-3.5 rounded-2xl bg-white/[0.03] border transition-all duration-300 ${
+          error ? "border-red-500/40 bg-red-500/5" : "border-white/10 focus-within:border-emerald-500/50 focus-within:bg-white/[0.06]"
         }`}
       >
         {children}
       </div>
-      {error && <p className="text-[11px] text-red-400 mt-1 ml-1">{error}</p>}
+      {error && <p className="text-[10px] font-black text-red-500/80 uppercase tracking-tighter mt-1 ml-1">{error}</p>}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "framer-motion";
 import Sidebar from "@/components/ui/Sidebar";
@@ -33,8 +34,25 @@ const SentinelMap = dynamic(() => import("@/components/maps/SentinelMap"), {
 });
 
 export default function MainDashboard() {
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
   const { activeView } = state;
+
+  // Global Geolocation Sync on Mount
+  useEffect(() => {
+    if (typeof window !== 'undefined' && navigator.geolocation && !state.userLocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          dispatch({ type: "SET_USER_LOCATION", payload: [latitude, longitude] });
+        },
+        () => {
+          // Fallback if needed, but we keep it null in state if failed
+          console.log("Geolocation sync deferred.");
+        },
+        { enableHighAccuracy: true }
+      );
+    }
+  }, [dispatch, state.userLocation]);
 
   const isMapView = activeView === "map";
   const isDashboard = activeView === "dashboard";
@@ -43,32 +61,32 @@ export default function MainDashboard() {
   const isSentinelView = activeView === "sentinel";
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden relative">
-      {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-obsidian-950 via-[#0d1f33] to-obsidian-950 pointer-events-none" />
-      <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/[0.03] rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-20 w-64 h-64 bg-blue-500/[0.02] rounded-full blur-3xl pointer-events-none" />
+    <div className="flex flex-col lg:flex-row h-screen w-screen overflow-hidden relative bg-obsidian-950 text-white">
+      {/* Background elements */}
+      <div className="absolute inset-0 bg-gradient-to-br from-obsidian-950 via-[#0d1f33] to-obsidian-950 pointer-events-none z-0" />
+      <div className="absolute top-0 right-0 w-[50vw] h-[50vh] bg-emerald-500/[0.03] rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[50vw] h-[50vh] bg-blue-500/[0.02] rounded-full blur-[120px] pointer-events-none" />
 
-      {/* Sidebar */}
+      {/* Sidebar - Component handles its own mobile/desktop behavior */}
       <Sidebar />
 
-      {/* Main content */}
-      <main className="flex-1 flex overflow-hidden relative z-10">
+      {/* Main content area */}
+      <main className="flex-1 flex flex-col lg:flex-row overflow-hidden relative z-10 pt-16 lg:pt-0">
         <AnimatePresence mode="wait">
           {/* DASHBOARD */}
           {isDashboard && (
             <motion.div
               key="dashboard"
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              transition={{ duration: 0.3 }}
-              className="flex-1 overflow-hidden flex"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.4 }}
+              className="flex-1 overflow-hidden flex flex-col xl:flex-row"
             >
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto custom-scrollbar">
                 <DashboardView />
               </div>
-              <div className="w-80 xl:w-96 shrink-0 border-l border-white/[0.06] overflow-hidden">
+              <div className="hidden xl:block w-96 shrink-0 border-l border-white/[0.06] overflow-hidden glass">
                 <CommunityFeed />
               </div>
             </motion.div>
@@ -81,13 +99,12 @@ export default function MainDashboard() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="flex-1 flex overflow-hidden"
+              className="flex-1 flex flex-col lg:flex-row overflow-hidden"
             >
-              <div className="flex-1 relative">
+              <div className="flex-1 relative min-h-[400px]">
                 <EcoMap />
               </div>
-              <div className="w-80 xl:w-96 shrink-0 border-l border-white/[0.06] overflow-hidden glass">
+              <div className="hidden xl:block w-96 shrink-0 border-l border-white/[0.06] overflow-hidden glass">
                 <CommunityFeed />
               </div>
             </motion.div>
@@ -97,23 +114,14 @@ export default function MainDashboard() {
           {isSentinelView && (
             <motion.div
               key="sentinel"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="p-4 sm:p-6 w-full"
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.02 }}
+              className="p-3 sm:p-5 lg:p-6 w-full h-full lg:flex lg:items-center lg:justify-center overflow-y-auto"
             >
-                <SentinelMap 
-                    bbox={[13.08, 52.33, 13.76, 52.68]} // Berlin BBOX
-                    datetime={(() => {
-                      const end = new Date();
-                      const start = new Date();
-                      start.setMonth(end.getMonth() - 2); // default range: last 2 months
-                      const fmt = (d: Date) => d.toISOString().split('.')[0] + 'Z';
-                      return `${fmt(start)}/${fmt(end)}`;
-                    })()}
-                    collections={["sentinel-2-l2a"]}
-                />
+                <div className="w-full max-w-[1600px] mx-auto min-h-[600px]">
+                    <SentinelMap />
+                </div>
             </motion.div>
           )}
 
@@ -121,16 +129,15 @@ export default function MainDashboard() {
           {isAI && (
             <motion.div
               key="ai"
-              initial={{ opacity: 0, x: 10 }}
+              initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              transition={{ duration: 0.3 }}
-              className="flex-1 flex overflow-hidden"
+              exit={{ opacity: 0, x: -20 }}
+              className="flex-1 flex flex-col lg:flex-row overflow-hidden"
             >
-              <div className="flex-1 relative min-w-0">
+              <div className="flex-1 relative min-h-[400px]">
                 <EcoMap />
               </div>
-              <div className="w-80 xl:w-96 shrink-0 border-l border-white/[0.06] overflow-hidden glass">
+              <div className="w-full lg:w-96 shrink-0 border-t lg:border-t-0 lg:border-l border-white/[0.06] overflow-hidden glass max-h-[50vh] lg:max-h-none">
                 <AIInsightsPanel />
               </div>
             </motion.div>
@@ -140,19 +147,19 @@ export default function MainDashboard() {
           {isCommunity && (
             <motion.div
               key="community"
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              transition={{ duration: 0.3 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               className="flex-1 overflow-hidden"
             >
-              <CommunityFeed />
+              <div className="h-full overflow-y-auto">
+                <CommunityFeed />
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
       </main>
 
-      {/* Tree Request Modal (global) */}
       <TreeRequestModal />
     </div>
   );

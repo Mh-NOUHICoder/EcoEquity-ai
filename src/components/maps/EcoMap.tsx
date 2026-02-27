@@ -2,204 +2,236 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "@/context/AppContext";
-import { NDVI_GEOJSON } from "@/lib/data";
+import { NDVI_GEOJSON, MOCK_REPORTS } from "@/lib/data";
 import { getColor, getHeatLevel, getOpacity } from "@/lib/ndvi";
-import { generateAIInsight } from "@/lib/gemini";
 import { NDVIFeature } from "@/types";
 import { MAP_THEMES } from "@/lib/mapThemes";
+import { Navigation, Crosshair } from "lucide-react";
+import { useMap } from "react-leaflet";
 
 import MapThemeSwitcher from "./MapThemeSwitcher";
 
 let L: typeof import("leaflet") | null = null;
 
+// Cinematic Focus Component (Works like Sentinel Hub)
+function MapInitialFocus({ center }: { center: [number, number] }) {
+  const map = useMap();
+  const hasFocused = useRef(false);
+
+  useEffect(() => {
+    if (!hasFocused.current && map) {
+        map.flyTo(center, 13, { duration: 3, easeLinearity: 0.25 });
+        hasFocused.current = true;
+    }
+  }, [center, map]);
+  return null;
+}
+
 export default function EcoMap() {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<import("leaflet").Map | null>(null);
   const currentTileLayerRef = useRef<import("leaflet").TileLayer | null>(null);
-  const [isReady, setIsReady] = useState(false);
+  const geoJsonLayerRef = useRef<import("leaflet").GeoJSON | null>(null);
+  const markersRef = useRef<import("leaflet").LayerGroup | null>(null);
+  
   const { state, dispatch } = useApp();
+  const [isReady, setIsReady] = useState(false);
+  const [mapCenter, setMapCenter] = useState<[number, number]>(state.userLocation || [30.998043, -6.755833]);
+  const [locationLoaded, setLocationLoaded] = useState(!!state.userLocation);
 
+  // Dynamic Leaflet Import
   useEffect(() => {
-    import("leaflet").then((leaflet) => {
-      L = leaflet.default;
-      setIsReady(true);
-    });
-  }, []);
+    if (typeof window !== 'undefined') {
+      import("leaflet").then((leaflet) => {
+        L = leaflet.default;
+        setIsReady(true);
+      });
+    }
 
+    // Attempt to lock location early
+    if (navigator.geolocation && !state.userLocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const { latitude, longitude } = position.coords;
+                setMapCenter([latitude, longitude]);
+                dispatch({ type: "SET_USER_LOCATION", payload: [latitude, longitude] });
+                setLocationLoaded(true);
+            },
+            () => setLocationLoaded(true),
+            { enableHighAccuracy: true }
+        );
+    } else if (state.userLocation) {
+        setLocationLoaded(true);
+    } else {
+        setLocationLoaded(true);
+    }
+  }, [dispatch, state.userLocation]);
+
+  const handleLocateUser = () => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const { latitude, longitude } = position.coords;
+            if (mapInstanceRef.current) {
+                mapInstanceRef.current.flyTo([latitude, longitude], 13, { duration: 2 });
+            }
+        },
+        () => {},
+        { enableHighAccuracy: true }
+    );
+  };
+
+  // Main Map Controller
   useEffect(() => {
     if (!isReady || !L || !mapRef.current) return;
+    const Leaflet = L;
 
+    // 1. Initialize Map Instance
     if (!mapInstanceRef.current) {
-      const map = L.map(mapRef.current, {
-        center: [52.51, 13.38],
-        zoom: 11.5,
-        zoomControl: true,
-        attributionControl: true,
+      const map = Leaflet.map(mapRef.current, {
+        center: [20, 0], // Start global for orbital effect
+        zoom: 3,
+        zoomControl: false, 
+        attributionControl: false,
       });
       mapInstanceRef.current = map;
+      Leaflet.control.zoom({ position: 'bottomright' }).addTo(map);
+
+      map.on('move', () => {
+          const center = map.getCenter();
+          const newCoords: [number, number] = [center.lat, center.lng];
+          setMapCenter(newCoords);
+          // Optional: update user location if we want reporting to follow map center
+          // dispatch({ type: "SET_USER_LOCATION", payload: newCoords });
+      });
     }
 
     const map = mapInstanceRef.current;
-    
-    // Theme switching logic
-    if (currentTileLayerRef.current) {
-        map.removeLayer(currentTileLayerRef.current);
-    }
 
+    // 2. Clear Existing Layers
+    if (currentTileLayerRef.current) map.removeLayer(currentTileLayerRef.current);
+    if (geoJsonLayerRef.current) map.removeLayer(geoJsonLayerRef.current);
+    if (markersRef.current) map.removeLayer(markersRef.current);
+
+    // 3. Add Tile Layer
     const theme = MAP_THEMES.find(t => t.id === state.mapTheme) || MAP_THEMES[0];
-    
-    currentTileLayerRef.current = L.tileLayer(theme.url, {
-      attribution: theme.attribution,
-      subdomains: "abcd",
-      maxZoom: 20,
+    currentTileLayerRef.current = Leaflet.tileLayer(theme.url, { maxZoom: 22 }).addTo(map);
+
+    // 4. Add District Polygons with Corrected CSS
+    geoJsonLayerRef.current = Leaflet.geoJSON(NDVI_GEOJSON as any, {
+        style: (feature) => {
+            const ndvi = (feature as NDVIFeature).properties.ndvi;
+            return {
+                fillColor: getColor(ndvi), weight: 1.5, opacity: 0.1,
+                color: "rgba(255,255,255,0.05)", fillOpacity: getOpacity(ndvi),
+            };
+        },
+        onEachFeature: (feature, layer) => {
+            const f = feature as NDVIFeature;
+            const { name, ndvi } = f.properties;
+            const color = getColor(ndvi);
+            layer.bindTooltip(
+                `<div style="font-family:'DM Sans', sans-serif; font-weight:700;">
+                  <div>${name}</div>
+                  <div style="color:${color}; font-size:10px; font-mono; margin-top:4px; text-transform:uppercase;">NDVI ${ndvi.toFixed(3)}</div>
+                </div>`,
+                { className: "eco-tooltip", sticky: true, offset: [0, -8] }
+            );
+            layer.on("click", () => {
+               dispatch({ type: "SELECT_FEATURE", payload: f });
+               dispatch({ type: "SET_VIEW", payload: "ai" });
+            });
+        }
     }).addTo(map);
 
-    if (map.getPanes().overlayPane.innerHTML === "") {
-        L.geoJSON(NDVI_GEOJSON as GeoJSON.FeatureCollection, {
-      style: (feature) => {
-        const ndvi = (feature as NDVIFeature).properties.ndvi;
-        return {
-          fillColor: getColor(ndvi),
-          weight: 1.5,
-          opacity: 0.8,
-          color: "rgba(255,255,255,0.2)",
-          fillOpacity: getOpacity(ndvi),
-        };
-      },
-      onEachFeature: (feature, layer) => {
-        const f = feature as NDVIFeature;
-        const { name, ndvi, avgTemp, population, treeCount } = f.properties;
-        const heatLevel = getHeatLevel(ndvi);
-        const color = getColor(ndvi);
-
-        layer.bindTooltip(
-          `<div style="font-family:'DM Sans',sans-serif"><div style="font-weight:600;margin-bottom:2px">${name}</div><div style="color:${color};font-family:'JetBrains Mono',monospace;font-size:11px">NDVI ${ndvi.toFixed(2)}</div></div>`,
-          { className: "eco-tooltip", sticky: true, offset: [0, -8] }
-        );
-
-        layer.bindPopup(
-          `<div style="font-family:'DM Sans',sans-serif;min-width:200px;padding:4px">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-              <h3 style="font-weight:600;font-size:15px;margin:0">${name}</h3>
-              <span style="font-size:10px;padding:3px 8px;border-radius:20px;background:${heatLevel === "critical" ? "rgba(239,68,68,0.15)" : heatLevel === "moderate" ? "rgba(245,158,11,0.15)" : "rgba(34,197,94,0.15)"};color:${color};border:1px solid ${color}40;font-family:'JetBrains Mono',monospace">${heatLevel.toUpperCase()}</span>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-              <div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:8px">
-                <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-bottom:2px">NDVI Score</div>
-                <div style="font-size:18px;font-weight:700;color:${color};font-family:'JetBrains Mono',monospace">${ndvi.toFixed(2)}</div>
-              </div>
-              <div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:8px">
-                <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-bottom:2px">Avg Temp</div>
-                <div style="font-size:18px;font-weight:700;color:${color};font-family:'JetBrains Mono',monospace">${avgTemp}°C</div>
-              </div>
-            </div>
-            <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:4px">Population: <span style="color:white">${population.toLocaleString()}</span></div>
-            <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:12px">Trees: <span style="color:white">${treeCount.toLocaleString()}</span></div>
-            ${
-              heatLevel === "critical"
-                ? `<button onclick="window.__openTreeModal({ district: '${name}', lat: ${(layer as import("leaflet").Polygon).getBounds().getCenter().lat}, lng: ${(layer as import("leaflet").Polygon).getBounds().getCenter().lng} })" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(239,68,68,0.4);background:rgba(239,68,68,0.1);color:#fca5a5;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;transition:all 0.2s">🌳 Request a Tree Here</button>`
-                : `<div style="font-size:11px;color:rgba(34,197,94,0.6);text-align:center">✓ This zone has adequate tree coverage</div>`
-            }
-          </div>`,
-          { maxWidth: 260, minWidth: 220 }
-        );
-
-        layer.on("mouseover", () => {
-          (layer as import("leaflet").Path).setStyle({
-            weight: 2.5,
-            color: "rgba(255,255,255,0.5)",
-            fillOpacity: Math.min(getOpacity(ndvi) + 0.15, 0.9),
-          });
+    // 5. Add Community Markers with Corrected CSS
+    const markerGroup = Leaflet.layerGroup();
+    MOCK_REPORTS.forEach(report => {
+        const color = report.heatLevel === 'critical' ? '#ef4444' : report.heatLevel === 'moderate' ? '#f59e0b' : '#10b981';
+        const customIcon = Leaflet.divIcon({
+            className: 'custom-div-icon',
+            html: `<div style="position:relative;"><div style="background:${color}; width:10px; height:10px; border-radius:50%; border:2px solid white; box-shadow:0 0 10px ${color};"></div></div>`,
+            iconSize: [14, 14], iconAnchor: [7, 7]
         });
+        Leaflet.marker(report.coordinates, { icon: customIcon })
+               .addTo(markerGroup)
+               .bindPopup(`<div style="padding:10px; min-width:200px; color:white; font-family:'DM Sans', sans-serif;">
+                   <strong style="display:block; margin-bottom:4px;">${report.author}</strong>
+                   <p style="font-size:12px; opacity:0.7; margin-bottom:8px; line-height:1.4;">${report.message}</p>
+                   <div style="font-size:10px; font-weight:900; letter-spacing:0.1em; color:${color}; text-transform:uppercase;">${report.heatLevel} ZONE</div>
+               </div>`, { className: 'eco-popup' });
+    });
+    markerGroup.addTo(map);
+    markersRef.current = markerGroup;
 
-        layer.on("mouseout", () => {
-          (layer as import("leaflet").Path).setStyle({
-            weight: 1.5,
-            color: "rgba(255,255,255,0.2)",
-            fillOpacity: getOpacity(ndvi),
-          });
-        });
-
-        layer.on("click", async () => {
-          dispatch({ type: "SELECT_FEATURE", payload: f });
-          dispatch({ type: "SET_LOADING_INSIGHT", payload: true });
-          dispatch({ type: "SET_VIEW", payload: "ai" });
-          const insight = await generateAIInsight(f);
-          dispatch({ type: "SET_AI_INSIGHT", payload: insight });
-        });
-      },
-    }).addTo(map);
+    // Trigger flyTo once location is confirmed
+    if (locationLoaded) {
+        map.flyTo(mapCenter, 13, { duration: 3 });
     }
 
-    (window as any).__openTreeModal = (payload: { district: string; lat: number; lng: number }) => {
-      dispatch({
-        type: "OPEN_TREE_MODAL",
-        payload: {
-          coords: [payload.lat, payload.lng],
-          district: payload.district,
-        },
-      });
-      map.closePopup();
-    };
+    return () => { };
+  }, [isReady, state.mapTheme, locationLoaded, dispatch]);
 
-    return () => {
-      map.remove();
-      mapInstanceRef.current = null;
-      delete (window as any).__openTreeModal;
-    };
-  }, [isReady, dispatch, state.mapTheme]);
-
+  // Handle Focus Coords
   useEffect(() => {
-    if (!mapInstanceRef.current || !state.selectedFeature || !L) return;
-    const coords = state.selectedFeature.geometry.coordinates[0];
-    const lats = coords.map((c) => c[1]);
-    const lngs = coords.map((c) => c[0]);
-    const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
-    const centerLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
-    mapInstanceRef.current.flyTo([centerLat, centerLng], 13, {
-      duration: 1.2,
-      easeLinearity: 0.5,
-    });
-  }, [state.selectedFeature]);
+    const map = mapInstanceRef.current;
+    if (!map || !L) return;
+    if (state.focusCoords) {
+        map.flyTo(state.focusCoords, 16, { duration: 1.5 });
+        dispatch({ type: "SET_FOCUS_COORDS", payload: null });
+    }
+  }, [state.focusCoords, dispatch]);
 
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-full group overflow-hidden bg-obsidian-950">
       {!isReady && (
-        <div className="absolute inset-0 flex items-center justify-center z-10 bg-obsidian-950">
+        <div className="absolute inset-0 flex items-center justify-center z-[1000] bg-obsidian-950">
           <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-2 border-emerald-500/30 border-t-emerald-400 rounded-full animate-spin" />
-            <p className="text-white/40 text-sm font-mono">
-              Loading map data...
-            </p>
+            <div className="w-10 h-10 border-2 border-emerald-500/20 border-t-emerald-400 rounded-full animate-spin" />
+            <p className="text-white/20 text-[10px] font-black uppercase tracking-[0.3em]">Mapping Neural Network...</p>
           </div>
         </div>
       )}
-      <div ref={mapRef} className="w-full h-full" />
+      
+      <div ref={mapRef} className="w-full h-full grayscale-[10%] brightness-[90%]" />
 
-      <MapThemeSwitcher />
-
-      <div className="absolute bottom-6 left-4 glass-card rounded-xl p-3 z-[400]">
-        <p className="text-[10px] font-mono text-white/40 uppercase tracking-wider mb-2">
-          NDVI Scale
-        </p>
-        <div className="space-y-1.5">
-          <LegendItem color="#ef4444" label="&lt; 0.2 · Critical" />
-          <LegendItem color="#f59e0b" label="0.2–0.4 · Moderate" />
-          <LegendItem color="#22c55e" label="&gt; 0.4 · Healthy" />
-        </div>
+      {/* Map Controls - MOBILE OPTIMIZED (Top-20 for better header clearance) */}
+      <div className="absolute top-20 right-4 lg:top-8 lg:right-8 z-[1002]">
+          <MapThemeSwitcher align="right" className="relative scale-90 lg:scale-100" />
       </div>
-    </div>
-  );
-}
 
-function LegendItem({ color, label }: { color: string; label: string }) {
-  return (
-    <div className="flex items-center gap-2">
-        <div
-        className="w-3 h-3 rounded-sm shrink-0 shadow-[0_0_8px_rgba(255,255,255,0.1)]"
-        style={{ backgroundColor: color, opacity: 1 }}
-      />
-      <span className="text-[11px] text-white font-bold font-mono drop-shadow-sm">{label}</span>
+      <div className="absolute top-20 left-4 lg:top-8 lg:left-8 z-[1002]">
+          <button 
+             onClick={handleLocateUser}
+             className="glass rounded-xl lg:rounded-2xl p-2 lg:p-4 flex items-center gap-2 lg:gap-3 border-cyan-500/20 hover:border-cyan-500/50 shadow-2xl transition-all group"
+          >
+             <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-lg lg:rounded-xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20 group-hover:bg-cyan-500/20 transition-colors">
+                <Navigation className="w-4 h-4 lg:w-5 lg:h-5 text-cyan-400" />
+             </div>
+             <div className="flex flex-col text-left">
+                <span className="text-[7px] lg:text-[10px] font-black text-white/40 uppercase tracking-widest leading-none mb-0.5 lg:mb-1">Satellite Link</span>
+                <span className="text-[9px] lg:text-[11px] font-black text-white uppercase tracking-tighter">Locate Me</span>
+             </div>
+          </button>
+      </div>
+
+      {/* Telemetry Display - Compact for Mobile */}
+      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-[1002] w-full max-w-sm px-6">
+          <div className="glass px-4 lg:px-6 py-3 lg:py-4 rounded-[1.5rem] lg:rounded-[2rem] border-white/10 shadow-2xl backdrop-blur-3xl">
+              <div className="flex flex-col">
+                  <div className="flex items-center gap-2 mb-1 lg:mb-2">
+                      <div className="w-1 h-1 lg:w-1.5 lg:h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="text-[7px] lg:text-[9px] font-black text-emerald-400 uppercase tracking-widest opacity-80">Sector Lock</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                     <div className="text-sm lg:text-lg font-mono font-black text-white tabular-nums tracking-tighter leading-none">
+                        {mapCenter[0].toFixed(6)}°N <span className="opacity-20 mx-1">/</span> {mapCenter[1].toFixed(6)}°E
+                     </div>
+                     <Crosshair size={12} className="text-white/20 animate-spin-slow hidden sm:block" />
+                  </div>
+              </div>
+          </div>
+      </div>
     </div>
   );
 }
