@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useApp } from "@/context/AppContext";
 import type { Feature, FeatureCollection } from "geojson";
 import { AnimatePresence, motion } from "framer-motion";
+import { Calendar, Clock } from "lucide-react";
 
 // Define a more specific type for the expected STAC feature properties
 interface StacFeatureProperties {
@@ -99,9 +100,25 @@ const FeatureInspector: React.FC<{ feature: StacFeature; index: number }> = ({
                       </span>
                     </p>
                     <p className="flex justify-between items-center pb-2 border-b border-white/5">
-                      <span className="text-gray-500">Datetime</span>
-                      <span className="font-mono text-white/80">
-                        {new Date(datetime).toLocaleDateString()}
+                      <span className="text-gray-500">Sensing Date</span>
+                      <span className="font-mono text-white/80 flex items-center gap-2">
+                        <Calendar size={12} className="text-cyan-400" />
+                        {new Date(datetime).toLocaleDateString(undefined, { 
+                          year: 'numeric', 
+                          month: 'short', 
+                          day: 'numeric' 
+                        })}
+                      </span>
+                    </p>
+                    <p className="flex justify-between items-center pb-2 border-b border-white/5">
+                      <span className="text-gray-500">Capture Time</span>
+                      <span className="font-mono text-white/80 flex items-center gap-2">
+                        <Clock size={12} className="text-blue-400" />
+                        {new Date(datetime).toLocaleTimeString(undefined, {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit'
+                        })}
                       </span>
                     </p>
                     <p className="flex justify-between items-center">

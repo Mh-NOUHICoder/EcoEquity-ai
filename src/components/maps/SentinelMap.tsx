@@ -207,6 +207,16 @@ const SentinelMap: React.FC = () => {
                       <span className="text-[9px] lg:text-[11px] font-mono font-black text-white/80">PRISTINE</span>
                   </div>
               </div>
+
+              <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                      <Calendar size={12} className="text-cyan-400" />
+                      <span className="text-[8px] lg:text-[9px] font-black text-white/40 uppercase tracking-widest">Spectral Capture</span>
+                  </div>
+                  <span className="text-[9px] lg:text-[10px] font-mono font-black text-cyan-400">
+                      {new Date().toLocaleDateString(undefined, { month: 'short', day: '2-digit', year: 'numeric' })}
+                  </span>
+              </div>
           </div>
       </div>
 
