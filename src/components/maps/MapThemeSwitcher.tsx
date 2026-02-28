@@ -5,9 +5,11 @@ import { MAP_THEMES } from "@/lib/mapThemes";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { Map, Layers, Check } from "lucide-react";
+import { translations } from "@/lib/translations";
 
 export default function MapThemeSwitcher({ className, align = "left" }: { className?: string, align?: "left" | "right" }) {
   const { state, dispatch } = useApp();
+  const t = translations[state.language];
   const [isOpen, setIsOpen] = useState(false);
 
   const currentTheme = MAP_THEMES.find((t) => t.id === state.mapTheme) || MAP_THEMES[0];
@@ -27,7 +29,7 @@ export default function MapThemeSwitcher({ className, align = "left" }: { classN
         >
           <Layers className="w-4 h-4 text-cyan-400 group-hover:rotate-12 transition-transform" />
           <span className="text-[10px] font-black font-mono text-white/90 uppercase tracking-widest">
-            {currentTheme.name}
+            {t[`theme_${currentTheme.id}`] || currentTheme.name}
           </span>
         </button>
 
@@ -46,7 +48,7 @@ export default function MapThemeSwitcher({ className, align = "left" }: { classN
             >
               <div className="px-3 py-2 border-b border-white/5 mb-1">
                 <p className="text-[9px] uppercase tracking-[0.3em] text-cyan-400 font-black">
-                  Select Terrain
+                  {t.selectTerrain}
                 </p>
               </div>
               {MAP_THEMES.map((theme) => (
@@ -71,7 +73,7 @@ export default function MapThemeSwitcher({ className, align = "left" }: { classN
                     <span className={`text-[12px] font-bold tracking-wide ${
                       state.mapTheme === theme.id ? "text-white" : "text-white/60"
                     }`}>
-                      {theme.name}
+                      {t[`theme_${theme.id}`] || theme.name}
                     </span>
                   </div>
                   {state.mapTheme === theme.id && (

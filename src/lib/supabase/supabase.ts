@@ -28,3 +28,13 @@ export async function submitTreeRequest(request: TreeRequest) {
   if (error) throw error;
   return data;
 }
+
+export async function getTreeRequests() {
+  const { data, error } = await supabase
+    .from("tree_requests")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return data;
+}

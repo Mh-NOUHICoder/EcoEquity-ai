@@ -10,6 +10,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useApp } from "@/context/AppContext";
+import { translations } from "@/lib/translations";
 import { NDVI_GEOJSON, CITY_AVG_NDVI } from "@/lib/data";
 import { getColor } from "@/lib/ndvi";
 import { generateAIInsight } from "@/lib/gemini";
@@ -17,6 +18,7 @@ import { NDVIFeature } from "@/types";
 
 export default function AIInsightsPanel() {
   const { state, dispatch } = useApp();
+  const t = translations[state.language];
 
   const criticalZones = NDVI_GEOJSON.features.filter(
     (f) => f.properties.ndvi < 0.2
@@ -45,22 +47,22 @@ export default function AIInsightsPanel() {
       <div className="p-4 lg:p-6 border-b border-white/[0.08] shrink-0 bg-white/[0.02]">
         <div className="flex items-center gap-2 mb-1.5">
           <Sparkles size={16} className="text-emerald-400" />
-          <h2 className="text-sm font-black text-white uppercase tracking-widest">Neural Insights</h2>
+          <h2 className="text-sm font-black text-white uppercase tracking-widest">{t.aiInsights}</h2>
           <span className="ml-auto text-[9px] font-black text-emerald-400/60 bg-emerald-400/10 px-2.5 py-1 rounded-lg border border-emerald-400/20 uppercase tracking-tighter">
-            Gemini Core
+            {t.geminiCore}
           </span>
         </div>
         <p className="text-[11px] font-bold text-white/30 uppercase tracking-tight">
-          District Environmental Analysis Engine
+          {t.districtAnalysis}
         </p>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6 custom-scrollbar pb-24 lg:pb-6">
         {/* Rapid Stats Dashboard */}
         <div className="grid grid-cols-3 gap-3">
-          <StatCard label="NDVI" value={avgNDVI.toFixed(2)} sub="City Avg" color="amber" icon={<BarChart3 size={14} />} />
-          <StatCard label="Alerts" value={criticalZones.length.toString()} sub="Critical" color="red" icon={<AlertTriangle size={14} />} />
-          <StatCard label="At Risk" value={`${(totalPopAtRisk / 1000).toFixed(0)}k`} sub="Population" color="red" icon={<Zap size={14} />} />
+          <StatCard label={t.ndviIndex} value={avgNDVI.toFixed(2)} sub={t.cityAvg} color="amber" icon={<BarChart3 size={14} />} />
+          <StatCard label={t.alerts} value={criticalZones.length.toString()} sub={t.criticalRiskArea} color="red" icon={<AlertTriangle size={14} />} />
+          <StatCard label={t.atRisk} value={`${(totalPopAtRisk / 1000).toFixed(0)}k`} sub={t.residents} color="red" icon={<Zap size={14} />} />
         </div>
 
         {/* Dynamic Insight Card */}
@@ -69,7 +71,7 @@ export default function AIInsightsPanel() {
             <div className="flex items-center gap-3">
                 <Sparkles size={14} className="text-emerald-400 transition-pulse" />
                 <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">
-                    {state.selectedFeature ? state.selectedFeature.properties.name : "System Idle"}
+                    {state.selectedFeature ? state.selectedFeature.properties.name : (t.systemIdle || "System Idle")}
                 </span>
             </div>
             {state.isLoadingInsight && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />}
@@ -93,7 +95,7 @@ export default function AIInsightsPanel() {
                     <Sparkles size={24} className="text-white/10" />
                   </div>
                   <p className="text-[12px] font-bold text-white/20 uppercase tracking-widest">
-                    Select Location for Data Synthesis
+                    {t.selectLocation}
                   </p>
                 </motion.div>
               )}
@@ -106,7 +108,7 @@ export default function AIInsightsPanel() {
           <div className="flex items-center gap-2 mb-4 px-1">
              <div className="w-1.5 h-3.5 bg-emerald-500 rounded-full" />
              <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">
-               Satellite Feed Registry
+               {t.satelliteFeed}
              </p>
           </div>
           <div className="space-y-1.5">

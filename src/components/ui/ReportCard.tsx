@@ -6,6 +6,7 @@ import { useState } from "react";
 import { CommunityReport, HeatLevel } from "@/types";
 import { formatNDVI, getColor } from "@/lib/ndvi";
 import { useApp } from "@/context/AppContext";
+import { translations } from "@/lib/translations";
 
 interface ReportCardProps {
   report: CommunityReport;
@@ -19,10 +20,21 @@ const heatConfig: Record<HeatLevel, { bg: string; dot: string; label: string; gl
 };
 
 export default function ReportCard({ report, index }: ReportCardProps) {
-  const { dispatch } = useApp();
+  const { state, dispatch } = useApp();
+  const t = translations[state.language];
   const [upvoted, setUpvoted] = useState(false);
   const [votes, setVotes] = useState(report.upvotes);
-  const config = heatConfig[report.heatLevel];
+
+  const getHeatLabel = (level: HeatLevel) => {
+    if (level === "critical") return t.criticalRiskArea;
+    if (level === "moderate") return t.moderateStressZone;
+    return t.stableEcosystem;
+  };
+
+  const config = {
+    ...heatConfig[report.heatLevel],
+    label: getHeatLabel(report.heatLevel)
+  };
 
   const handleUpvote = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -58,11 +70,11 @@ export default function ReportCard({ report, index }: ReportCardProps) {
           <div className="relative w-12 h-12 shrink-0">
             <div className={`absolute inset-0 rounded-2xl blur-md opacity-30 ${report.heatLevel === "critical" ? "bg-red-500" : report.heatLevel === "moderate" ? "bg-amber-500" : "bg-emerald-500"}`} />
             <div className="relative w-12 h-12 rounded-[1rem] bg-obsidian-900 border border-white/10 flex items-center justify-center shadow-lg group-hover:border-emerald-500/30 transition-colors">
-              <span className="text-[11px] font-black text-white/90 uppercase tracking-widest">{report.avatar}</span>
+              <span className="text-[11px] font-black text-white/90 uppercase tracking-widest">{report.avatar || (report.author === "Anonymous Operative" ? t.anonymousOperative.charAt(0) : report.author.charAt(0))}</span>
             </div>
           </div>
           <div className="flex flex-col">
-            <h4 className="text-sm font-black text-white tracking-tight uppercase">{report.author}</h4>
+            <h4 className="text-sm font-black text-white tracking-tight uppercase">{report.author === "Anonymous Operative" ? t.anonymousOperative : report.author}</h4>
             <div className="flex items-center gap-1.5 opacity-40">
               <MapPin size={10} className="text-emerald-400" />
               <span className="text-[10px] font-black uppercase tracking-widest">{report.district}</span>
@@ -86,7 +98,7 @@ export default function ReportCard({ report, index }: ReportCardProps) {
       <div className="flex items-center justify-between gap-4">
         <div className="flex-1 space-y-2">
             <div className="flex items-center justify-between">
-                <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em]">Environmental Index</span>
+                <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em]">{t.environmentalIndex}</span>
                 <span className="text-[11px] font-mono font-black" style={{ color: getColor(report.ndvi) }}>
                     NDVI {report.ndvi.toFixed(3)}
                 </span>
@@ -114,7 +126,7 @@ export default function ReportCard({ report, index }: ReportCardProps) {
                 className="flex items-center gap-2 text-emerald-400/60 hover:text-emerald-400 transition-colors bg-emerald-400/5 px-3 py-1.5 rounded-lg border border-emerald-400/10 hover:border-emerald-400/30 shadow-lg"
              >
                 <SearchCode size={13} />
-                <span className="text-[10px] font-black uppercase tracking-tighter">Analyze Spatial Data</span>
+                <span className="text-[10px] font-black uppercase tracking-tighter">{t.analyzeSpatialData}</span>
              </motion.button>
         </div>
         

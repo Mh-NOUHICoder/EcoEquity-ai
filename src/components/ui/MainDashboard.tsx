@@ -9,35 +9,44 @@ import CommunityFeed from "@/components/ui/CommunityFeed";
 import AIInsightsPanel from "@/components/ui/AIInsightsPanel";
 import DashboardView from "@/components/ui/DashboardView";
 import { useApp } from "@/context/AppContext";
+import { translations } from "@/lib/translations";
+import { getTreeRequests } from "@/lib/supabase/supabase";
+import { CommunityReport } from "@/types";
+
+// Map Loader Component for Translated Load states
+const MapLoader = ({ messageKey, color = "emerald" }: { messageKey: string; color?: "emerald" | "sky" }) => {
+  const { state } = useApp();
+  const t = translations[state.language];
+  const colorClasses = color === "emerald" ? "border-emerald-500/30 border-t-emerald-400" : "border-sky-500/30 border-t-sky-400";
+  const textClasses = color === "emerald" ? "text-white/30" : "text-slate-400";
+  
+  return (
+    <div className={`w-full h-full flex items-center justify-center ${color === "emerald" ? "bg-obsidian-950" : "bg-slate-900"}`}>
+      <div className="flex flex-col items-center gap-3">
+        <div className={`w-8 h-8 border-2 rounded-full animate-spin ${colorClasses}`} />
+        <p className={`text-sm font-mono tracking-widest uppercase ${textClasses}`}>{t[messageKey] || "Loading..."}</p>
+      </div>
+    </div>
+  );
+};
 
 // Dynamic import of the map (no SSR)
 const EcoMap = dynamic(() => import("@/components/maps/EcoMap"), {
   ssr: false,
-  loading: () => (
-    <div className="w-full h-full flex items-center justify-center bg-obsidian-950">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-8 h-8 border-2 border-emerald-500/30 border-t-emerald-400 rounded-full animate-spin" />
-        <p className="text-white/30 text-sm font-mono">Initializing map...</p>
-      </div>
-    </div>
-  ),
+  loading: () => <MapLoader messageKey="initializingSectorLink" color="emerald" />,
 });
 
 const SentinelMap = dynamic(() => import("@/components/maps/SentinelMap"), {
     ssr: false,
-    loading: () => (
-        <div className="flex flex-col items-center justify-center w-full h-full bg-slate-900 text-white">
-            <div className="w-8 h-8 border-2 border-sky-500/30 border-t-sky-400 rounded-full animate-spin" />
-            <p className="mt-3 text-slate-400 text-sm">Loading Sentinel Viewer...</p>
-        </div>
-    ),
+    loading: () => <MapLoader messageKey="loadingSentinelViewer" color="sky" />,
 });
 
 export default function MainDashboard() {
   const { state, dispatch } = useApp();
-  const { activeView } = state;
+  const { activeView, language } = state;
+  const t = translations[language];
 
-  // Global Geolocation Sync on Mount
+  // 1. Global Geolocation Sync
   useEffect(() => {
     if (typeof window !== 'undefined' && navigator.geolocation && !state.userLocation) {
       navigator.geolocation.getCurrentPosition(
@@ -45,14 +54,36 @@ export default function MainDashboard() {
           const { latitude, longitude } = position.coords;
           dispatch({ type: "SET_USER_LOCATION", payload: [latitude, longitude] });
         },
-        () => {
-          // Fallback if needed, but we keep it null in state if failed
-          console.log("Geolocation sync deferred.");
-        },
+        () => console.log("Geolocation deferred."),
         { enableHighAccuracy: true }
       );
     }
   }, [dispatch, state.userLocation]);
+
+  // 2. Global Community Reports Fetch
+  useEffect(() => {
+    async function fetchReports() {
+        try {
+            const data = await getTreeRequests();
+            const mapped: CommunityReport[] = (data || []).map((req: any) => ({
+                id: req.id.toString(),
+                author: req.name || "Anonymous Operative",
+                avatar: (req.name || (language === 'en' ? "A" : language === 'fr' ? "A" : language === 'es' ? "A" : "ع")).charAt(0).toUpperCase(),
+                district: req.district || "Field Observation",
+                message: req.reason || "",
+                heatLevel: "moderate" as const,
+                ndvi: 0.35,
+                timestamp: new Date(req.created_at).toLocaleDateString(language === 'ar' ? 'ar-MA' : language === 'fr' ? 'fr-FR' : language === 'es' ? 'es-ES' : 'en-US', { month: 'short', day: '2-digit' }),
+                upvotes: 0,
+                coordinates: [req.lat, req.lng],
+            }));
+            dispatch({ type: "SET_REPORTS", payload: mapped });
+        } catch (err) {
+            console.error("Failed to fetch community reports:", err);
+        }
+    }
+    fetchReports();
+  }, [dispatch]);
 
   const isMapView = activeView === "map";
   const isDashboard = activeView === "dashboard";
@@ -62,25 +93,20 @@ export default function MainDashboard() {
 
   return (
     <div className="flex flex-col lg:flex-row h-screen w-screen overflow-hidden relative bg-obsidian-950 text-white">
-      {/* Background elements */}
       <div className="absolute inset-0 bg-gradient-to-br from-obsidian-950 via-[#0d1f33] to-obsidian-950 pointer-events-none z-0" />
       <div className="absolute top-0 right-0 w-[50vw] h-[50vh] bg-emerald-500/[0.03] rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-[50vw] h-[50vh] bg-blue-500/[0.02] rounded-full blur-[120px] pointer-events-none" />
-
-      {/* Sidebar - Component handles its own mobile/desktop behavior */}
+      
       <Sidebar />
 
-      {/* Main content area */}
       <main className="flex-1 flex flex-col lg:flex-row overflow-hidden relative z-10 pt-16 lg:pt-0">
         <AnimatePresence mode="wait">
-          {/* DASHBOARD */}
+          {/* DASHBOARD VIEW */}
           {isDashboard && (
             <motion.div
               key="dashboard"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.4 }}
               className="flex-1 overflow-hidden flex flex-col xl:flex-row"
             >
               <div className="flex-1 overflow-y-auto custom-scrollbar">
@@ -110,7 +136,7 @@ export default function MainDashboard() {
             </motion.div>
           )}
 
-          {/* SENTINEL VIEW */}
+          {/* SENTINEL HUB */}
           {isSentinelView && (
             <motion.div
               key="sentinel"
@@ -125,7 +151,7 @@ export default function MainDashboard() {
             </motion.div>
           )}
 
-          {/* AI INSIGHTS */}
+          {/* NEURAL CORE / AI */}
           {isAI && (
             <motion.div
               key="ai"
@@ -143,7 +169,7 @@ export default function MainDashboard() {
             </motion.div>
           )}
 
-          {/* COMMUNITY */}
+          {/* FIELD FEED / COMMUNITY */}
           {isCommunity && (
             <motion.div
               key="community"

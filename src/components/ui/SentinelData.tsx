@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useApp } from '@/context/AppContext';
+import { translations } from '@/lib/translations';
 
 export default function SentinelData() {
   const { state } = useApp();
+  const t = translations[state.language];
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -74,7 +76,7 @@ export default function SentinelData() {
       <div className="p-4 bg-gray-800 rounded-lg border border-gray-700">
         <div className="flex items-center gap-2 text-gray-300">
           <div className="w-4 h-4 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
-          <span className="text-sm font-mono">Loading Sentinel Debug Data...</span>
+          <span className="text-sm font-mono tracking-tighter uppercase">{t.transmitting}</span>
         </div>
       </div>
     );
@@ -83,7 +85,7 @@ export default function SentinelData() {
   return (
     <div className="p-4 bg-gray-900 rounded-lg border border-gray-800 space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-bold text-white uppercase tracking-wider">Sentinel API Debugger</h2>
+        <h2 className="text-sm font-bold text-white uppercase tracking-wider">{t.sentinelDebugger}</h2>
         <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${error ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
           {error ? 'ERROR' : 'OK'}
         </span>
@@ -97,7 +99,7 @@ export default function SentinelData() {
 
       {debugInfo && (
         <div className="p-3 bg-gray-950 border border-gray-800 rounded">
-          <p className="text-[10px] text-gray-500 uppercase mb-1">Raw Response</p>
+          <p className="text-[10px] text-gray-500 uppercase mb-1">{t.rawResponse}</p>
           <pre className="text-xs text-gray-400 font-mono whitespace-pre-wrap break-all">
             {debugInfo}
           </pre>
@@ -106,7 +108,7 @@ export default function SentinelData() {
 
       {data && (
         <div className="space-y-1">
-          <p className="text-[10px] text-gray-500 uppercase">Parsed JSON</p>
+          <p className="text-[10px] text-gray-500 uppercase">{t.parsedJSON}</p>
           <pre className="text-xs text-emerald-400/80 bg-black/40 p-3 rounded overflow-auto max-h-60 font-mono">
             {JSON.stringify(data, null, 2)}
           </pre>

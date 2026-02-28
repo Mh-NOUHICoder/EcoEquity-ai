@@ -56,3 +56,4 @@ export interface STACFeatureCollection {
 }
 
 export type MapTheme = "dark" | "light" | "satellite" | "terrain";
+export type Language = "ar" | "en" | "es" | "fr";

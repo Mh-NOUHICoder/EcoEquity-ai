@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
-import { MapContainer, TileLayer, GeoJSON, useMap, useMapEvents, Rectangle } from "react-leaflet";
+import { MapContainer, TileLayer, GeoJSON, useMap, useMapEvents, Rectangle, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import type { GeoJsonObject } from "geojson";
 import L from "leaflet";
@@ -12,9 +12,11 @@ import {
 } from "lucide-react";
 import { MAP_THEMES } from "@/lib/mapThemes";
 import { useApp } from "@/context/AppContext";
+import { translations } from "@/lib/translations";
 import MapThemeSwitcher from "./MapThemeSwitcher";
 import { STACFeatureCollection, STACFeature } from "@/types";
 import { getColor, getHeatLevel } from "@/lib/ndvi";
+import { MOCK_REPORTS } from "@/lib/data";
 
 // --- Constants for Premium Global HUD ---
 const HUD_GLASS = `relative bg-[#05080D]/90 backdrop-blur-[40px] border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.05)]`;
@@ -88,14 +90,20 @@ const GlobalGrid = ({ onCellHover }: { onCellHover: (data: any) => void }) => {
 // --- Auto-Focus Component ---
 const MapInitialFocus = ({ center }: { center: [number, number] }) => {
   const map = useMap();
+  const { state } = useApp();
   const hasFocused = useRef(false);
 
   useEffect(() => {
-    if (!hasFocused.current) {
+    // If there's a specific coordinate to focus on (e.g. from Analyze button), 
+    // we let MapFocusHandler handle it instead of doing the initial fly-to.
+    if (!hasFocused.current && !state.focusCoords) {
         map.flyTo(center, 13, { duration: 3, easeLinearity: 0.25 });
         hasFocused.current = true;
+    } else if (state.focusCoords) {
+        // Mark as focused so we don't interfere later
+        hasFocused.current = true;
     }
-  }, [center, map]);
+  }, [center, map, state.focusCoords]);
   return null;
 };
 
@@ -125,9 +133,48 @@ const MapFocusHandler = () => {
   return null;
 };
 
+const ReportMarkers = () => {
+  const { state } = useApp();
+  const t = translations[state.language];
+  const allReports = useMemo(() => [...state.reports, ...MOCK_REPORTS], [state.reports]);
+
+  const getHeatLabel = (level: string) => {
+    if (level === "critical") return t.criticalRiskArea;
+    if (level === "moderate") return t.moderateStressZone;
+    return t.stableEcosystem;
+  };
+
+  return (
+    <>
+      {allReports.map((report) => {
+        const color = report.heatLevel === 'critical' ? '#ef4444' : report.heatLevel === 'moderate' ? '#f59e0b' : '#10b981';
+        const icon = L.divIcon({
+          className: 'custom-div-icon',
+          html: `<div style="position:relative;"><div style="background:${color}; width:12px; height:12px; border-radius:50%; border:2px solid white; box-shadow:0 0 15px ${color}; animate: pulse 2s infinite;"></div></div>`,
+          iconSize: [16, 16],
+          iconAnchor: [8, 8]
+        });
+
+        return (
+          <Marker key={report.id} position={report.coordinates} icon={icon}>
+            <Popup className="eco-popup">
+               <div className="p-3 min-w-[200px] text-white font-sans">
+                   <strong className="block mb-1 text-sm">{report.author === "Anonymous Operative" ? t.anonymousOperative : report.author}</strong>
+                   <p className="text-xs opacity-70 mb-2 leading-relaxed">{report.message}</p>
+                   <div className="text-[9px] font-black tracking-widest uppercase" style={{ color }}>{getHeatLabel(report.heatLevel)}</div>
+               </div>
+            </Popup>
+          </Marker>
+        );
+      })}
+    </>
+  );
+};
+
 // --- Main Platform HUD ---
 const SentinelMap: React.FC = () => {
   const { state, dispatch } = useApp();
+  const t = translations[state.language];
   const theme = MAP_THEMES.find(t => t.id === state.mapTheme) || MAP_THEMES[0];
   const [currentCenter, setCurrentCenter] = useState<[number, number]>(state.userLocation || [30.998043, -6.755833]);
   const [hoveredCell, setHoveredCell] = useState<any>(null);
@@ -175,6 +222,7 @@ const SentinelMap: React.FC = () => {
             <MapMoveHandler onMove={setCurrentCenter} />
             <MapInitialFocus center={currentCenter} />
             <MapFocusHandler />
+            <ReportMarkers />
           </>
         )}
       </MapContainer>
@@ -187,34 +235,34 @@ const SentinelMap: React.FC = () => {
               <div className="flex items-center justify-between mb-3 lg:mb-4 border-b border-white/10 pb-2 lg:pb-3">
                   <div className="flex items-center gap-2 lg:gap-2.5">
                       <Command className="w-3 h-3 lg:w-4 lg:h-4 text-emerald-400" />
-                      <span className="text-[8px] lg:text-[9px] font-black text-white uppercase tracking-[0.2em]">Command</span>
+                      <span className="text-[8px] lg:text-[9px] font-black text-white uppercase tracking-[0.2em]">{t.commandOverview}</span>
                   </div>
                   <div className="flex items-center gap-1 lg:gap-1.5">
                       <div className="w-1 h-1 lg:w-1.5 lg:h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      <span className="text-[7px] lg:text-[8px] font-black text-emerald-400 uppercase tracking-widest">Active</span>
+                      <span className="text-[7px] lg:text-[8px] font-black text-emerald-400 uppercase tracking-widest">{t.activeOps}</span>
                   </div>
               </div>
               
               <div className="grid grid-cols-2 gap-2 lg:gap-4">
                   <div className="flex flex-col">
-                      <span className="text-[7px] lg:text-[8px] font-black text-white/30 uppercase tracking-widest mb-1">Elev.</span>
+                      <span className="text-[7px] lg:text-[8px] font-black text-white/30 uppercase tracking-widest mb-1">{t.elevation.substring(0, 5)}.</span>
                       <span className="text-[9px] lg:text-[11px] font-mono font-black text-white/80">
                          {hoveredCell ? (Math.random()*40 + 1160).toFixed(0) : "---"}m
                       </span>
                   </div>
                   <div className="flex flex-col border-l border-white/5 pl-2 lg:pl-4">
-                      <span className="text-[7px] lg:text-[8px] font-black text-white/30 uppercase tracking-widest mb-1">Atm.</span>
-                      <span className="text-[9px] lg:text-[11px] font-mono font-black text-white/80">PRISTINE</span>
+                      <span className="text-[7px] lg:text-[8px] font-black text-white/30 uppercase tracking-widest mb-1">{t.atmosphere.substring(0, 4)}.</span>
+                      <span className="text-[9px] lg:text-[11px] font-mono font-black text-white/80 uppercase">{t.pristine}</span>
                   </div>
               </div>
 
               <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                       <Calendar size={12} className="text-cyan-400" />
-                      <span className="text-[8px] lg:text-[9px] font-black text-white/40 uppercase tracking-widest">Spectral Capture</span>
+                      <span className="text-[8px] lg:text-[9px] font-black text-white/40 uppercase tracking-widest">{t.spectralCapture}</span>
                   </div>
-                  <span className="text-[9px] lg:text-[10px] font-mono font-black text-cyan-400">
-                      {new Date().toLocaleDateString(undefined, { month: 'short', day: '2-digit', year: 'numeric' })}
+                   <span className="text-[9px] lg:text-[10px] font-mono font-black text-cyan-400">
+                      {new Date().toLocaleDateString(state.language === 'es' ? 'es-ES' : state.language === 'ar' ? 'ar-SA' : state.language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: '2-digit', year: 'numeric' })}
                   </span>
               </div>
           </div>
@@ -235,22 +283,22 @@ const SentinelMap: React.FC = () => {
                           <Target className="w-5 h-5 lg:w-6 lg:h-6 text-cyan-400" />
                       </div>
                   </div>
-                  <div className="flex flex-col text-center lg:text-left">
-                      <span className="text-[7px] lg:text-[9px] font-black text-white/30 uppercase tracking-[0.4em] mb-1">Target Lock Coordinates</span>
-                      <div className="text-sm lg:text-xl font-mono font-black text-white tracking-widest tabular-nums leading-none">
-                        {currentCenter[0].toFixed(6)}°N <span className="text-cyan-500/30">/</span> {currentCenter[1].toFixed(6)}°E
-                      </div>
-                  </div>
+                   <div className="flex flex-col text-center lg:text-left">
+                       <span className="text-[7px] lg:text-[9px] font-black text-white/30 uppercase tracking-[0.4em] mb-1">{t.targetLockCoords}</span>
+                       <div className="text-sm lg:text-xl font-mono font-black text-white tracking-widest tabular-nums leading-none">
+                         {currentCenter[0].toFixed(6)}°N <span className="text-cyan-500/30">/</span> {currentCenter[1].toFixed(6)}°E
+                       </div>
+                   </div>
               </div>
 
               <div className="hidden lg:flex items-center gap-6 border-l border-white/10 pl-8">
-                  <div className="flex flex-col">
-                      <span className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-1.5 text-right">Global Status</span>
-                      <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-emerald-500/5 border border-emerald-500/20 group-hover:bg-emerald-500/10 transition-all">
-                          <Activity className="text-emerald-400 w-3.5 h-3.5" />
-                          <span className="text-[10px] font-black text-white uppercase tracking-widest">Stable Ops</span>
-                      </div>
-                  </div>
+                   <div className="flex flex-col">
+                       <span className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-1.5 text-right">{t.globalStatus || "Global Status"}</span>
+                       <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-emerald-500/5 border border-emerald-500/20 group-hover:bg-emerald-500/10 transition-all">
+                           <Activity className="text-emerald-400 w-3.5 h-3.5" />
+                           <span className="text-[10px] font-black text-white uppercase tracking-widest">{t.stableOps}</span>
+                       </div>
+                   </div>
               </div>
           </div>
       </div>
@@ -266,17 +314,17 @@ const SentinelMap: React.FC = () => {
             <div className={`${HUD_GLASS} px-6 py-5 rounded-[2rem] border-emerald-500/30 shadow-2xl`}>
                 <div className="flex items-center gap-3 mb-3 border-b border-white/10 pb-2">
                     <Crosshair className="w-4 h-4 text-emerald-400 animate-spin-slow" />
-                    <span className="text-[10px] font-black text-white uppercase tracking-widest">Sector_Analysis</span>
+                    <span className="text-[10px] font-black text-white uppercase tracking-widest">{t.sectorAnalysis}</span>
                 </div>
                 <div className="flex flex-col">
-                    <span className="text-[9px] text-white/30 uppercase font-black tracking-widest mb-1">NDVI Value</span>
+                    <span className="text-[9px] text-white/30 uppercase font-black tracking-widest mb-1">{t.ndviValue}</span>
                     <div className="text-2xl font-mono font-black text-white leading-none">
                         <SmoothValue value={hoveredCell.ndvi} />
                     </div>
                 </div>
                 <div className="mt-3 flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: getColor(hoveredCell.ndvi) }} />
-                    <span className="text-[10px] font-black text-white/50 uppercase">{getHeatLevel(hoveredCell.ndvi)} Zone</span>
+                    <span className="text-[10px] font-black text-white/50 uppercase">{getHeatLevel(hoveredCell.ndvi) === 'critical' ? t.criticalRiskArea : getHeatLevel(hoveredCell.ndvi) === 'moderate' ? t.moderateStressZone : t.stableEcosystem}</span>
                 </div>
             </div>
           </motion.div>
@@ -289,11 +337,11 @@ const SentinelMap: React.FC = () => {
                 initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
                 className="fixed bottom-32 left-8 right-8 z-[6000] p-6 rounded-[2.5rem] bg-[#05080D] border border-emerald-500/30 backdrop-blur-3xl shadow-2xl text-center"
             >
-                <div className="text-[9px] font-black text-white/40 uppercase tracking-[0.3em] mb-2">Live Sector Data</div>
+                <div className="text-[9px] font-black text-white/40 uppercase tracking-[0.3em] mb-2">{t.liveSectorData}</div>
                 <div className="text-3xl font-mono font-black text-white mb-2">
                     <SmoothValue value={hoveredCell.ndvi} />
                 </div>
-                <div className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">{getHeatLevel(hoveredCell.ndvi)} // OPTIMAL_SYNC</div>
+                <div className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">{getHeatLevel(hoveredCell.ndvi) === 'critical' ? t.criticalRiskArea : getHeatLevel(hoveredCell.ndvi) === 'moderate' ? t.moderateStressZone : t.stableEcosystem} // {t.optimalSync}</div>
             </motion.div>
         )}
       </AnimatePresence>

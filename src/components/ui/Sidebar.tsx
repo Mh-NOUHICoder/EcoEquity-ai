@@ -23,18 +23,21 @@ import {
 } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { ActiveView } from "@/types";
-import { useState, useEffect } from "react";
-
-const navItems = [
-  { id: "dashboard" as ActiveView, label: "COMMAND CENTER", icon: LayoutDashboard, desc: "Global Overview" },
-  { id: "map" as ActiveView, label: "TACTICAL MAP", icon: Map, desc: "Heat Mapping" },
-  { id: "sentinel" as ActiveView, label: "SENTINEL HUB", icon: Satellite, desc: "Satellite Intel" },
-  { id: "ai" as ActiveView, label: "NEURAL CORE", icon: Sparkles, desc: "AI Synthesis" },
-  { id: "community" as ActiveView, label: "FIELD FEED", icon: MessageSquare, desc: "User Telemetry" },
-];
+import { useState, useEffect, useMemo } from "react";
+import { translations } from "@/lib/translations";
+import LanguageSwitcher from "./LanguageSwitcher";
 
 export default function Sidebar() {
   const { state, dispatch } = useApp();
+  const t = translations[state.language];
+
+  const navItems = useMemo(() => [
+    { id: "dashboard" as ActiveView, label: t.dashboard, icon: LayoutDashboard, desc: t.commandOverview },
+    { id: "map" as ActiveView, label: t.tacticalMap, icon: Map, desc: t.thermalAlerts },
+    { id: "sentinel" as ActiveView, label: t.sentinelHub, icon: Satellite, desc: t.spectralCapture },
+    { id: "ai" as ActiveView, label: t.neuralCore, icon: Sparkles, desc: t.aiInsights },
+    { id: "community" as ActiveView, label: t.fieldFeed, icon: MessageSquare, desc: t.fieldObservation },
+  ], [t]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [time, setTime] = useState("");
@@ -68,6 +71,9 @@ export default function Sidebar() {
             />
         </div>
         
+        {/* Language Selection - MOBILE ACCESSIBLE */}
+        <LanguageSwitcher className="ml-auto mr-4" />
+
         {/* Aerospace Menu Toggle */}
         <button 
             onClick={toggleMobileMenu}
@@ -119,14 +125,14 @@ export default function Sidebar() {
                 <div className="p-8 pb-4 border-b border-white/[0.04] relative">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex flex-col">
-                            <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest leading-none mb-1">System Time</span>
+                            <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest leading-none mb-1">{t.systemTime}</span>
                             <span className="text-xl font-mono font-black text-white/90 tabular-nums">{time}</span>
                         </div>
                         <div className="text-right">
-                            <span className="text-[10px] font-black text-white/20 uppercase tracking-widest leading-none mb-1">Telemetry</span>
+                            <span className="text-[10px] font-black text-white/20 uppercase tracking-widest leading-none mb-1">{t.telemetry}</span>
                             <div className="flex items-center gap-1.5 justify-end">
                                 <Activity size={10} className="text-emerald-400 animate-pulse" />
-                                <span className="text-xs font-mono font-bold text-emerald-400/80 tracking-tighter uppercase">Sync_Active</span>
+                                <span className="text-xs font-mono font-bold text-emerald-400/80 tracking-tighter uppercase">{t.activeOps}</span>
                             </div>
                         </div>
                     </div>
@@ -181,14 +187,14 @@ export default function Sidebar() {
                         <div className="flex-1 bg-white/[0.02] border border-white/[0.05] rounded-3xl p-4 flex flex-col gap-2 relative group overflow-hidden">
                              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                              <Terminal size={12} className="text-white/20" />
-                             <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">Core_Link</span>
-                             <span className="text-xs font-mono font-bold text-white/90 uppercase">Stable</span>
+                             <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">{t.coreLink}</span>
+                             <span className="text-xs font-mono font-bold text-white/90 uppercase">{t.stableOps}</span>
                         </div>
                         <div className="flex-1 bg-white/[0.02] border border-white/[0.05] rounded-3xl p-4 flex flex-col gap-2 relative group overflow-hidden">
                              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                              <ShieldCheck size={12} className="text-white/20" />
-                             <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">Protocol</span>
-                             <span className="text-xs font-mono font-bold text-white/90 uppercase">Encrypted</span>
+                             <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">{t.protocol}</span>
+                             <span className="text-xs font-mono font-bold text-white/90 uppercase">{t.encrypted}</span>
                         </div>
                     </div>
                     
@@ -197,7 +203,7 @@ export default function Sidebar() {
                         onClick={() => setIsMobileMenuOpen(false)}
                         className="w-full flex items-center justify-center p-5 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 text-[11px] font-black text-emerald-400 tracking-[0.3em] uppercase transition-all active:scale-95 active:bg-emerald-500/20 shadow-[0_10px_30px_rgba(16,185,129,0.1)]"
                     >
-                        Initialize Debug
+                        {t.initializeDebug}
                     </Link>
                 </div>
             </motion.aside>
@@ -209,13 +215,15 @@ export default function Sidebar() {
       <motion.aside
         initial={{ x: -100, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
-        className="hidden lg:flex w-24 xl:w-80 h-full bg-[#05080D]/95 border-r border-white/[0.08] flex-col relative z-[50] shrink-0 overflow-hidden"
+        className="hidden lg:flex w-24 xl:w-80 h-full bg-[#05080D]/95 border-r border-white/[0.08] flex-col relative z-[50] shrink-0"
       >
         {/* Glow Effects */}
-        <div className="absolute top-0 left-0 w-full h-[600px] bg-emerald-500/[0.03] blur-[120px] pointer-events-none" />
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 left-0 w-full h-[600px] bg-emerald-500/[0.03] blur-[120px]" />
+        </div>
 
         {/* Desktop Logo */}
-        <div className="p-10 flex items-center justify-center border-b border-white/[0.04]">
+        <div className="p-4 xl:p-10 flex items-center justify-center border-b border-white/[0.04]">
           <div className="relative w-14 h-14 xl:w-56 xl:h-16 group transition-transform hover:scale-105 duration-500">
             <div className="absolute -inset-4 bg-emerald-500/10 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
             <Image 
@@ -227,9 +235,8 @@ export default function Sidebar() {
             />
           </div>
         </div>
-
         {/* Desktop Nav */}
-        <nav className="flex-1 p-6 space-y-2 overflow-y-auto mt-4">
+        <nav className="flex-1 p-3 xl:p-6 space-y-2 overflow-y-auto mt-4">
           {navItems.map((item) => {
             const isActive = state.activeView === item.id;
             const Icon = item.icon;
@@ -242,7 +249,7 @@ export default function Sidebar() {
                 whileHover={{ x: 8 }}
                 whileTap={{ scale: 0.98 }}
                 className={`
-                  w-full flex items-center gap-5 p-4 rounded-3xl transition-all duration-500 group relative
+                  w-full flex items-center justify-center xl:justify-start gap-5 p-2 xl:p-4 rounded-3xl transition-all duration-500 group relative
                   ${isActive 
                     ? "bg-white/[0.08] border border-white/20 text-white shadow-[0_15px_30px_rgba(0,0,0,0.3)]" 
                     : "text-white/20 hover:text-white/80 border border-transparent"}
@@ -264,7 +271,7 @@ export default function Sidebar() {
         </nav>
 
         {/* Desktop Footer (Real-time Meta) */}
-        <div className="p-8 space-y-6">
+        <div className="p-4 xl:p-8 space-y-6">
             <div className="hidden xl:block">
                 <DynamicTelemetry />
             </div>
@@ -274,15 +281,23 @@ export default function Sidebar() {
                 className="w-full h-14 flex items-center justify-center rounded-2xl bg-white/[0.03] border border-white/5 text-[10px] font-black text-white/20 hover:text-emerald-400 hover:bg-emerald-500/10 hover:border-emerald-500/20 transition-all group"
             >
                 <Bug size={16} className="xl:mr-3 group-hover:rotate-12 transition-transform" />
-                <span className="hidden xl:block uppercase tracking-widest">System_Debug</span>
+                <span className="hidden xl:block uppercase tracking-widest">{t.systemDebug}</span>
             </Link>
         </div>
       </motion.aside>
+
+      {/* --- Floating Desktop Language Switcher --- */}
+      <div className="hidden lg:block fixed top-6 right-6 z-[200]">
+        <LanguageSwitcher variant="floating" />
+      </div>
     </>
   );
 }
 
 function DynamicTelemetry() {
+  const { state } = useApp();
+  const t = translations[state.language];
+
   const [metrics, setMetrics] = useState({
     ndvi: 0.312,
     nodes: 1284,
@@ -309,7 +324,7 @@ function DynamicTelemetry() {
       <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">Live Telemetry</span>
+              <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">{t.liveTelemetry}</span>
           </div>
           <div className="flex items-center gap-1.5">
               <Wifi size={10} className="text-emerald-400" />
@@ -318,13 +333,13 @@ function DynamicTelemetry() {
       </div>
 
       <div className="space-y-4">
-          <StatusRow label="NDVI index" value={metrics.ndvi.toFixed(3)} color={metrics.ndvi < 0.2 ? "red" : metrics.ndvi < 0.4 ? "amber" : "green"} icon={<Activity size={12} />} />
+          <StatusRow label={t.ndviIndex} value={metrics.ndvi.toFixed(3)} color={metrics.ndvi < 0.2 ? "red" : metrics.ndvi < 0.4 ? "amber" : "green"} icon={<Activity size={12} />} />
           
           <div className="space-y-2">
             <div className="flex justify-between items-end">
                 <div className="flex items-center gap-2">
                     <Cpu size={10} className="text-white/20" />
-                    <span className="text-[9px] font-black text-white/20 uppercase tracking-widest">Neural Load</span>
+                    <span className="text-[9px] font-black text-white/20 uppercase tracking-widest">{t.neuralLoad}</span>
                 </div>
                 <span className="text-[10px] font-mono font-black text-white/40">{metrics.load}%</span>
             </div>
@@ -338,11 +353,11 @@ function DynamicTelemetry() {
 
           <div className="pt-2 grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1">
-                  <span className="text-[8px] font-black text-white/20 uppercase tracking-tighter">Field Pings</span>
+                  <span className="text-[8px] font-black text-white/20 uppercase tracking-tighter">{t.fieldPings}</span>
                   <span className="text-xs font-mono font-black text-white/60 tabular-nums">{metrics.nodes.toLocaleString()}</span>
               </div>
               <div className="flex flex-col gap-1 text-right">
-                  <span className="text-[8px] font-black text-white/20 uppercase tracking-tighter">CO2 Offset</span>
+                  <span className="text-[8px] font-black text-white/20 uppercase tracking-tighter">{t.co2Offset}</span>
                   <span className="text-xs font-mono font-black text-emerald-400 tabular-nums">+{metrics.offset}kg</span>
               </div>
           </div>

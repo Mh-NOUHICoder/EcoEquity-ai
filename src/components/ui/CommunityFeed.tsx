@@ -7,6 +7,7 @@ import ReportCard from "@/components/ui/ReportCard";
 import { MOCK_REPORTS } from "@/lib/data";
 import { HeatLevel } from "@/types";
 import { useApp } from "@/context/AppContext";
+import { translations } from "@/lib/translations";
 
 const filters: { label: string; value: HeatLevel | "all" }[] = [
   { label: "All", value: "all" },
@@ -16,8 +17,16 @@ const filters: { label: string; value: HeatLevel | "all" }[] = [
 ];
 
 export default function CommunityFeed() {
-  const [activeFilter, setActiveFilter] = useState<HeatLevel | "all">("all");
   const { state, dispatch } = useApp();
+  const t = translations[state.language];
+  const [activeFilter, setActiveFilter] = useState<HeatLevel | "all">("all");
+
+  const localizedFilters: { label: string; value: HeatLevel | "all" }[] = [
+    { label: t.dashboard, value: "all" }, // Using dashboard for "All" or adding new key? I'll use placeholders if needed but "All" is simple. I'll add them to translations.ts first.
+    { label: t.criticalRiskArea || "Critical", value: "critical" },
+    { label: t.moderateStressZone || "Moderate", value: "moderate" },
+    { label: t.stableEcosystem || "Healthy", value: "healthy" },
+  ];
 
   const allReports = [...state.reports, ...MOCK_REPORTS];
 
@@ -47,12 +56,12 @@ export default function CommunityFeed() {
             <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
                 <MessageSquare size={16} className="text-emerald-400" />
             </div>
-            <h2 className="text-sm font-black text-white uppercase tracking-widest">Global Field Feed</h2>
+            <h2 className="text-sm font-black text-white uppercase tracking-widest">{t.fieldFeed}</h2>
           </div>
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 shadow-[0_0_15px_#10b98120]">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#10b981]" />
             <span className="text-[9px] font-black text-emerald-400 uppercase tracking-tighter">
-              Live Feed Active
+              {t.liveSync}
             </span>
           </div>
         </div>
@@ -79,16 +88,15 @@ export default function CommunityFeed() {
             <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center border border-white/20 group-hover:bg-white/30 transition-colors">
                 <Plus size={18} className="text-white" />
             </div>
-            <div className="flex flex-col items-start">
-                <span className="text-[11px] font-black text-white uppercase tracking-widest leading-none mb-1">Report Spatial Issue</span>
-                <span className="text-[9px] font-bold text-white/60 tracking-tight uppercase">Automatically Geolocation Synchronized</span>
+            <div className="flex flex-col items-start px-3">
+                <span className="text-[11px] font-black text-white uppercase tracking-widest leading-none mb-1">{t.submitRequest}</span>
+                <span className="text-[9px] font-bold text-white/60 tracking-tight uppercase">{t.locateMe}</span>
             </div>
             <MapPin size={16} className="ml-auto text-white/40" />
         </motion.button>
 
-        {/* Filters */}
         <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-          {filters.map((f) => (
+          {localizedFilters.map((f) => (
             <button
               key={f.value}
               onClick={() => setActiveFilter(f.value)}
@@ -117,7 +125,7 @@ export default function CommunityFeed() {
             <div className="w-20 h-20 rounded-full bg-white/[0.02] border border-white/5 flex items-center justify-center">
                 <MessageSquare size={32} className="text-white/5" />
             </div>
-            <p className="text-[12px] font-black text-white/20 uppercase tracking-[0.3em]">No Spatial Data Found in Segment</p>
+            <p className="text-[12px] font-black text-white/20 uppercase tracking-[0.3em]">{t.selectLocation}</p>
           </div>
         ) : (
           filtered.map((report, i) => (

@@ -6,7 +6,7 @@ import React, {
   useReducer,
   ReactNode,
 } from "react";
-import { ActiveView, CommunityReport, MapTheme, NDVIFeature } from "@/types";
+import { ActiveView, CommunityReport, MapTheme, NDVIFeature, Language } from "@/types";
 
 interface AppState {
   activeView: ActiveView;
@@ -23,6 +23,7 @@ interface AppState {
   hotZones: number | null;
   mapTheme: MapTheme;
   userLocation: [number, number] | null;
+  language: Language;
 }
 
 type Action =
@@ -38,7 +39,8 @@ type Action =
   | { type: "ADD_REPORT"; payload: CommunityReport }
   | { type: "SET_NDVI_DATA"; payload: { avgNDVI: number; hotZones: number } }
   | { type: "SET_MAP_THEME"; payload: MapTheme }
-  | { type: "SET_USER_LOCATION"; payload: [number, number] };
+  | { type: "SET_USER_LOCATION"; payload: [number, number] }
+  | { type: "SET_LANGUAGE"; payload: Language };
 
 const initialState: AppState = {
   activeView: "dashboard",
@@ -55,6 +57,7 @@ const initialState: AppState = {
   hotZones: null,
   mapTheme: "dark",
   userLocation: null,
+  language: "en",
 };
 
 function reducer(state: AppState, action: Action): AppState {
@@ -72,6 +75,7 @@ function reducer(state: AppState, action: Action): AppState {
     case "SET_NDVI_DATA": return { ...state, avgNDVI: action.payload.avgNDVI, hotZones: action.payload.hotZones };
     case "SET_MAP_THEME": return { ...state, mapTheme: action.payload };
     case "SET_USER_LOCATION": return { ...state, userLocation: action.payload };
+    case "SET_LANGUAGE": return { ...state, language: action.payload };
     default: return state;
   }
 }
