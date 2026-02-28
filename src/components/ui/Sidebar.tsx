@@ -16,7 +16,10 @@ import {
   Globe,
   Clock,
   Terminal,
-  Activity
+  Activity,
+  Cpu,
+  Server,
+  Wifi
 } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { ActiveView } from "@/types";
@@ -263,16 +266,7 @@ export default function Sidebar() {
         {/* Desktop Footer (Real-time Meta) */}
         <div className="p-8 space-y-6">
             <div className="hidden xl:block">
-                <div className="bg-white/[0.02] border border-white/[0.05] rounded-[2.5rem] p-6 space-y-5 transition-all hover:border-emerald-500/20">
-                    <div className="flex items-center gap-3">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">System Telemetry</span>
-                    </div>
-                    <div className="space-y-3">
-                         <StatusRow label="NDVI Index" value="0.31" color="amber" icon={<Zap size={10} />} />
-                         <StatusRow label="Active Nodes" value="1,284" color="green" icon={<Globe size={10} />} />
-                    </div>
-                </div>
+                <DynamicTelemetry />
             </div>
             
             <Link 
@@ -285,6 +279,75 @@ export default function Sidebar() {
         </div>
       </motion.aside>
     </>
+  );
+}
+
+function DynamicTelemetry() {
+  const [metrics, setMetrics] = useState({
+    ndvi: 0.312,
+    nodes: 1284,
+    load: 42,
+    offset: 142.5,
+    signal: 98
+  });
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMetrics(prev => ({
+        ndvi: +(prev.ndvi + (Math.random() - 0.5) * 0.005).toFixed(3),
+        nodes: prev.nodes + (Math.random() > 0.8 ? 1 : 0) - (Math.random() > 0.9 ? 1 : 0),
+        load: Math.min(100, Math.max(10, prev.load + Math.floor((Math.random() - 0.5) * 10))),
+        offset: +(prev.offset + 0.001).toFixed(3),
+        signal: Math.min(100, Math.max(90, prev.signal + Math.floor((Math.random() - 0.5) * 2)))
+      }));
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="bg-white/[0.02] border border-white/[0.05] rounded-[2.5rem] p-6 space-y-5 transition-all hover:border-emerald-500/20 group">
+      <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">Live Telemetry</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+              <Wifi size={10} className="text-emerald-400" />
+              <span className="text-[9px] font-mono text-emerald-400/60 font-black">{metrics.signal}%</span>
+          </div>
+      </div>
+
+      <div className="space-y-4">
+          <StatusRow label="NDVI index" value={metrics.ndvi.toFixed(3)} color={metrics.ndvi < 0.2 ? "red" : metrics.ndvi < 0.4 ? "amber" : "green"} icon={<Activity size={12} />} />
+          
+          <div className="space-y-2">
+            <div className="flex justify-between items-end">
+                <div className="flex items-center gap-2">
+                    <Cpu size={10} className="text-white/20" />
+                    <span className="text-[9px] font-black text-white/20 uppercase tracking-widest">Neural Load</span>
+                </div>
+                <span className="text-[10px] font-mono font-black text-white/40">{metrics.load}%</span>
+            </div>
+            <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+                <motion.div 
+                    animate={{ width: `${metrics.load}%` }}
+                    className={`h-full rounded-full ${metrics.load > 80 ? 'bg-red-500/50' : 'bg-emerald-500/50'}`} 
+                />
+            </div>
+          </div>
+
+          <div className="pt-2 grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1">
+                  <span className="text-[8px] font-black text-white/20 uppercase tracking-tighter">Field Pings</span>
+                  <span className="text-xs font-mono font-black text-white/60 tabular-nums">{metrics.nodes.toLocaleString()}</span>
+              </div>
+              <div className="flex flex-col gap-1 text-right">
+                  <span className="text-[8px] font-black text-white/20 uppercase tracking-tighter">CO2 Offset</span>
+                  <span className="text-xs font-mono font-black text-emerald-400 tabular-nums">+{metrics.offset}kg</span>
+              </div>
+          </div>
+      </div>
+    </div>
   );
 }
 
