@@ -34,7 +34,7 @@ export default function Sidebar() {
   const navItems = useMemo(() => [
     { id: "dashboard" as ActiveView, label: t.dashboard, icon: LayoutDashboard, desc: t.commandOverview },
     { id: "map" as ActiveView, label: t.tacticalMap, icon: Map, desc: t.thermalAlerts },
-    { id: "sentinel" as ActiveView, label: t.sentinelHub, icon: Satellite, desc: t.spectralCapture },
+    { id: "sentinel" as ActiveView, label: t.sentinelHub, icon: Satellite, desc: t.loadingSentinelViewer },
     { id: "ai" as ActiveView, label: t.neuralCore, icon: Sparkles, desc: t.aiInsights },
     { id: "community" as ActiveView, label: t.fieldFeed, icon: MessageSquare, desc: t.fieldObservation },
   ], [t]);

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
+import RootLayoutWrapper from "@/components/layout/RootLayoutWrapper";
 
 export const metadata: Metadata = {
   title: "EcoEquity AI — Urban Heat Island Intelligence",
@@ -34,7 +35,9 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans antialiased bg-obsidian-950 text-white overflow-hidden">
-        <AppProvider>{children}</AppProvider>
+        <AppProvider>
+          <RootLayoutWrapper>{children}</RootLayoutWrapper>
+        </AppProvider>
       </body>
     </html>
   );

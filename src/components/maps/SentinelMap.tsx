@@ -14,18 +14,14 @@ import { MAP_THEMES } from "@/lib/mapThemes";
 import { useApp } from "@/context/AppContext";
 import { translations } from "@/lib/translations";
 import MapThemeSwitcher from "./MapThemeSwitcher";
-import { STACFeatureCollection, STACFeature } from "@/types";
-import { getColor, getHeatLevel } from "@/lib/ndvi";
-import { MOCK_REPORTS } from "@/lib/data";
+import { MapSearch } from "./MapSearch";
+import { getColor, getHeatLevel, getDynamicNDVI } from "@/lib/ndvi";
+import { MOCK_REPORTS, NDVI_GEOJSON } from "@/lib/data";
 
 // --- Constants for Premium Global HUD ---
 const HUD_GLASS = `relative bg-[#05080D]/90 backdrop-blur-[40px] border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.05)]`;
 
 // --- Helpers ---
-const getDynamicNDVI = (lat: number, lng: number) => {
-  const seed = Math.sin(lat * 12.9898 + lng * 78.233) * 43758.5453;
-  return 0.1 + (seed - Math.floor(seed)) * 0.75;
-};
 
 const SmoothValue = ({ value }: { value: number | null }) => {
   const motionValue = useMotionValue(0);
@@ -181,6 +177,7 @@ const SentinelMap: React.FC = () => {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [isMobile, setIsMobile] = useState(false);
   const [locationLoaded, setLocationLoaded] = useState(false);
+  const [activeMobileCard, setActiveMobileCard] = useState<string | null>(null);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 1024);
@@ -219,6 +216,52 @@ const SentinelMap: React.FC = () => {
         {locationLoaded && (
           <>
             <GlobalGrid onCellHover={setHoveredCell} />
+            <GeoJSON 
+              data={NDVI_GEOJSON as any} 
+              style={(feature) => ({
+                fillColor: getColor(feature?.properties.ndvi),
+                weight: 1.5,
+                opacity: 0.6,
+                color: 'white',
+                fillOpacity: 0.4,
+              })}
+              onEachFeature={(feature, layer) => {
+                layer.on({
+                  click: (e) => {
+                    dispatch({ type: "SELECT_FEATURE", payload: feature as any });
+                    (e as any).originalEvent.stopPropagation();
+                  },
+                  mouseover: (e) => {
+                    const l = e.target;
+                    l.setStyle({ fillOpacity: 0.6, weight: 3 });
+                  },
+                  mouseout: (e) => {
+                    const l = e.target;
+                    l.setStyle({ fillOpacity: 0.4, weight: 1.5 });
+                  }
+                });
+              }}
+            />
+            {/* User / Focus Marker Pulse */}
+            <Marker position={state.userLocation ?? currentCenter} icon={L.divIcon({
+                className: 'user-lock-icon',
+                html: `
+                    <div class="relative group" style="width: 60px; height: 60px; display: flex; align-items: center; justify-content: center;">
+                        <div class="absolute w-12 h-12 bg-cyan-500/10 rounded-full animate-ping"></div>
+                        <div class="absolute w-6 h-6 bg-cyan-400 rounded-full border-2 border-white shadow-[0_0_20px_rgba(34,211,238,1)] flex items-center justify-center">
+                            <div class="w-1.5 h-1.5 bg-white rounded-full"></div>
+                        </div>
+                        <div class="absolute -top-14 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none bg-[#0A0F1A]/90 px-4 py-1.5 rounded-xl border border-white/10 backdrop-blur-xl text-[9px] font-black text-white uppercase tracking-[0.2em] whitespace-nowrap shadow-2xl">
+                           <div class="flex items-center gap-2">
+                               <div class="w-1 h-1 rounded-full bg-cyan-400 animate-pulse"></div>
+                               ${t.targetLockCoords}
+                           </div>
+                        </div>
+                    </div>
+                `,
+                iconSize: [60, 60], iconAnchor: [30, 30]
+            })} />
+
             <MapMoveHandler onMove={setCurrentCenter} />
             <MapInitialFocus center={currentCenter} />
             <MapFocusHandler />
@@ -227,80 +270,176 @@ const SentinelMap: React.FC = () => {
         )}
       </MapContainer>
 
-      {/* --- COMMAND COCKPIT OVERLAY --- */}
-
-      {/* Global Sector Status (Top Left - MOBILE OPTIMIZED) */}
-      <div className="absolute top-24 left-4 lg:top-12 lg:left-12 z-[1002] flex flex-col gap-5">
-          <div className={`${HUD_GLASS} p-4 lg:p-7 rounded-[1.5rem] lg:rounded-[2.25rem] border-emerald-500/20 w-[180px] lg:w-72 shadow-2xl`}>
-              <div className="flex items-center justify-between mb-3 lg:mb-4 border-b border-white/10 pb-2 lg:pb-3">
-                  <div className="flex items-center gap-2 lg:gap-2.5">
-                      <Command className="w-3 h-3 lg:w-4 lg:h-4 text-emerald-400" />
-                      <span className="text-[8px] lg:text-[9px] font-black text-white uppercase tracking-[0.2em]">{t.commandOverview}</span>
-                  </div>
-                  <div className="flex items-center gap-1 lg:gap-1.5">
-                      <div className="w-1 h-1 lg:w-1.5 lg:h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      <span className="text-[7px] lg:text-[8px] font-black text-emerald-400 uppercase tracking-widest">{t.activeOps}</span>
-                  </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-2 lg:gap-4">
-                  <div className="flex flex-col">
-                      <span className="text-[7px] lg:text-[8px] font-black text-white/30 uppercase tracking-widest mb-1">{t.elevation.substring(0, 5)}.</span>
-                      <span className="text-[9px] lg:text-[11px] font-mono font-black text-white/80">
-                         {hoveredCell ? (Math.random()*40 + 1160).toFixed(0) : "---"}m
-                      </span>
-                  </div>
-                  <div className="flex flex-col border-l border-white/5 pl-2 lg:pl-4">
-                      <span className="text-[7px] lg:text-[8px] font-black text-white/30 uppercase tracking-widest mb-1">{t.atmosphere.substring(0, 4)}.</span>
-                      <span className="text-[9px] lg:text-[11px] font-mono font-black text-white/80 uppercase">{t.pristine}</span>
-                  </div>
-              </div>
-
-              <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                      <Calendar size={12} className="text-cyan-400" />
-                      <span className="text-[8px] lg:text-[9px] font-black text-white/40 uppercase tracking-widest">{t.spectralCapture}</span>
-                  </div>
-                   <span className="text-[9px] lg:text-[10px] font-mono font-black text-cyan-400">
-                      {new Date().toLocaleDateString(state.language === 'es' ? 'es-ES' : state.language === 'ar' ? 'ar-SA' : state.language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: '2-digit', year: 'numeric' })}
-                  </span>
-              </div>
-          </div>
+      {/* --- PREMIUM UNIFIED COMMAND BRIDGE --- */}
+      
+      {/* 1. VISION BAR (Top Center) - Minimalist AR Search */}
+      <div className="absolute top-16 lg:top-14 left-1/2 -translate-x-1/2 z-[1005] w-full max-w-sm lg:max-w-xl px-4 pointer-events-none">
+          <motion.div 
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="flex items-center gap-2 pointer-events-auto"
+          >
+            <div className="flex-1 min-w-0">
+               <MapSearch />
+            </div>
+            {/* Mobile-only Theme Switcher Next to Search */}
+            <div className="lg:hidden flex-shrink-0">
+               <MapThemeSwitcher align="right" direction="down" className="relative scale-90" showText={false} />
+            </div>
+          </motion.div>
       </div>
 
-      {/* FIXED THEME SWITCHER (Top Right - MOBILE OPTIMIZED) */}
-      <div className="absolute top-24 right-4 lg:top-12 lg:right-12 z-[1002]">
-          <MapThemeSwitcher align="right" className="relative scale-90 lg:scale-100" />
+      {/* 2. TACTICAL OVERLAY (The Side Indicators) */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {/* Subtle Side Glows */}
+        <div className="absolute top-1/4 -left-20 w-40 h-96 bg-emerald-500/5 blur-[100px] rounded-full" />
+        <div className="absolute top-1/4 -right-20 w-40 h-96 bg-cyan-500/5 blur-[100px] rounded-full" />
       </div>
 
-      {/* Global Telemetry HUD (Bottom Center) */}
-      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-[1002] w-full max-w-xl px-6">
-          <div className={`${HUD_GLASS} px-6 lg:px-8 py-4 lg:py-5 rounded-[2rem] lg:rounded-[2.5rem] border-cyan-500/20 flex flex-col lg:flex-row items-center justify-between gap-4 lg:gap-8 group hover:border-cyan-500/40 transition-all duration-500`}>
-              <div className="flex items-center gap-4 lg:gap-5">
-                  <div className="relative hidden sm:block">
-                      <div className="absolute inset-0 bg-cyan-500/10 blur-xl rounded-full animate-pulse" />
-                      <div className="relative p-2.5 lg:p-3.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
-                          <Target className="w-5 h-5 lg:w-6 lg:h-6 text-cyan-400" />
-                      </div>
-                  </div>
-                   <div className="flex flex-col text-center lg:text-left">
-                       <span className="text-[7px] lg:text-[9px] font-black text-white/30 uppercase tracking-[0.4em] mb-1">{t.targetLockCoords}</span>
-                       <div className="text-sm lg:text-xl font-mono font-black text-white tracking-widest tabular-nums leading-none">
-                         {currentCenter[0].toFixed(6)}°N <span className="text-cyan-500/30">/</span> {currentCenter[1].toFixed(6)}°E
-                       </div>
+      {/* 3. COMMAND BRIDGE DOCK (Tactical Refactor) */}
+      <div className="absolute bottom-16 lg:bottom-24 left-6 right-6 lg:left-12 lg:right-12 z-[1002] pointer-events-none">
+        {/* Mobile View: High-Visibility Minimalist Dock */}
+        <AnimatePresence mode="wait">
+          {isMobile && activeMobileCard && (
+             <motion.div
+               initial={{ y: 20, opacity: 0 }}
+               animate={{ y: 0, opacity: 1 }}
+               exit={{ y: 20, opacity: 0 }}
+               className="pointer-events-auto w-full mb-4"
+             >
+                <div className={`${HUD_GLASS} p-6 rounded-[2.5rem] border-cyan-500/20 overflow-hidden relative shadow-inner backdrop-blur-3xl`}>
+                   <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent animate-pulse" />
+                   <div className="absolute top-4 right-4 z-20">
+                      <button 
+                        onClick={() => setActiveMobileCard(null)}
+                        className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10 text-white/40 active:bg-cyan-500/20 active:text-white transition-all shadow-xl"
+                      >
+                         ✕
+                      </button>
                    </div>
-              </div>
+                   
+                   {activeMobileCard === 'metrics' && (
+                      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                          <div className="flex items-center gap-3 mb-4 border-b border-white/5 pb-3">
+                              <Command className="w-4 h-4 text-emerald-400" />
+                              <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em]">{t.commandOverview}</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-1">
+                                  <span className="text-[8px] font-black text-white/30 uppercase tracking-widest">{t.elevation}</span>
+                                  <div className="text-sm font-mono font-black text-white/90">{hoveredCell ? (Math.random()*40 + 1160).toFixed(0) : "---"}m</div>
+                              </div>
+                              <div className="space-y-1 border-l border-white/5 pl-4">
+                                  <span className="text-[8px] font-black text-white/30 uppercase tracking-widest">{t.atmosphere}</span>
+                                  <div className="text-[10px] font-mono font-black text-emerald-400 uppercase">{t.pristine}</div>
+                              </div>
+                          </div>
+                      </motion.div>
+                   )}
 
-              <div className="hidden lg:flex items-center gap-6 border-l border-white/10 pl-8">
-                   <div className="flex flex-col">
-                       <span className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-1.5 text-right">{t.globalStatus || "Global Status"}</span>
-                       <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-emerald-500/5 border border-emerald-500/20 group-hover:bg-emerald-500/10 transition-all">
-                           <Activity className="text-emerald-400 w-3.5 h-3.5" />
-                           <span className="text-[10px] font-black text-white uppercase tracking-widest">{t.stableOps}</span>
-                       </div>
+                   {activeMobileCard === 'telemetry' && (
+                      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                         <div className="flex items-center gap-3 mb-4 border-b border-white/5 pb-3">
+                            <Target className="w-4 h-4 text-cyan-400" />
+                            <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em]">{t.targetLockCoords}</span>
+                         </div>
+                         <div className="text-xl font-mono font-black text-white tracking-widest tabular-nums mb-2">
+                             {currentCenter[0].toFixed(5)}°N / {currentCenter[1].toFixed(5)}°E
+                         </div>
+                         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/5 border border-emerald-500/10 w-fit">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            <span className="text-[9px] font-black text-white/80 uppercase tracking-widest">{t.stableOps}</span>
+                         </div>
+                      </motion.div>
+                   )}
+                </div>
+             </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div className="flex flex-col lg:flex-row items-end lg:items-center justify-between gap-4 lg:gap-6">
+          
+          {/* Mobile Icon Column vs Desktop Cards */}
+          <div className="pointer-events-auto flex lg:flex-row flex-col items-end lg:justify-between gap-3 w-full">
+             
+             {/* LEFT: Sector Metrics (Icon on Mobile, Card on Desktop) */}
+             {!isMobile ? (
+                <motion.div initial={{ x: -20 }} animate={{ x: 0 }} className="hidden lg:block">
+                   <div className={`${HUD_GLASS} px-10 py-8 rounded-[3rem] border-white/5 w-80 shadow-[0_40px_100px_rgba(0,0,0,0.8)] backdrop-blur-[60px] group overflow-hidden relative`}>
+                        <div className="absolute top-0 left-0 w-2 h-2 border-l border-t border-emerald-500/40 rounded-tl-xl" />
+                        <div className="relative z-10">
+                            <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
+                                <Command className="w-4 h-4 text-emerald-400" />
+                                <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em]">{t.commandOverview}</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <span className="text-[8px] font-black text-white/30 uppercase tracking-widest">{t.elevation}</span>
+                                    <div className="text-sm font-mono font-black text-white/90">{hoveredCell ? (Math.random()*40 + 1160).toFixed(0) : "---"}m</div>
+                                </div>
+                                <div className="space-y-1 border-l border-white/5 pl-4">
+                                    <span className="text-[8px] font-black text-white/30 uppercase tracking-widest">{t.atmosphere}</span>
+                                    <div className="text-[10px] font-mono font-black text-emerald-400 uppercase">{t.pristine}</div>
+                                </div>
+                            </div>
+                        </div>
                    </div>
-              </div>
+                </motion.div>
+             ) : (
+                <div className="flex flex-col gap-3">
+                   <button 
+                      onClick={() => setActiveMobileCard(activeMobileCard === 'metrics' ? null : 'metrics')}
+                      className={`${HUD_GLASS} w-16 h-16 rounded-3xl flex flex-col items-center justify-center gap-1.5 border-emerald-500/20 active:scale-90 transition-all ${activeMobileCard === 'metrics' ? 'bg-emerald-500/20 border-emerald-500/40 shadow-[0_0_25px_rgba(16,185,129,0.4)]' : ''}`}
+                   >
+                      <Command size={20} className={activeMobileCard === 'metrics' ? 'text-emerald-400' : 'text-white/30'} />
+                      <span className="text-[7px] font-black text-white/50 uppercase tracking-tighter whitespace-nowrap">{t.commandOverview.split(' ')[0]}</span>
+                   </button>
+                </div>
+             )}
+
+             {/* CENTER: Main Telemetry Bridge (Icon on Mobile, Card on Desktop) */}
+             {!isMobile ? (
+                <motion.div initial={{ y: 20 }} animate={{ y: 0 }} className="flex-1 max-w-2xl hidden lg:block">
+                   <div className={`${HUD_GLASS} px-10 py-6 rounded-[3rem] border-white/5 shadow-[0_40px_100px_rgba(0,0,0,0.8)] backdrop-blur-[60px] relative group overflow-hidden`}>
+                        <div className="relative z-10 flex items-center justify-between gap-8">
+                            <div className="flex items-center gap-6">
+                                <Target size={20} className="text-cyan-400" />
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mb-1">{t.targetLockCoords}</span>
+                                    <div className="text-2xl font-mono font-black text-white tracking-widest tabular-nums leading-none">
+                                        {currentCenter[0].toFixed(5)}°N / {currentCenter[1].toFixed(5)}°E
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                <span className="text-[11px] font-black text-white/80 uppercase tracking-widest">{t.stableOps}</span>
+                            </div>
+                        </div>
+                   </div>
+                </motion.div>
+             ) : (
+                <div className="flex flex-col gap-3">
+                   <button 
+                      onClick={() => setActiveMobileCard(activeMobileCard === 'telemetry' ? null : 'telemetry')}
+                      className={`${HUD_GLASS} w-16 h-16 rounded-3xl flex flex-col items-center justify-center gap-1.5 border-cyan-500/20 active:scale-90 transition-all ${activeMobileCard === 'telemetry' ? 'bg-cyan-500/20 border-cyan-500/40 shadow-[0_0_25px_rgba(34,211,238,0.4)]' : ''}`}
+                   >
+                      <Target size={20} className={activeMobileCard === 'telemetry' ? 'text-cyan-400' : 'text-white/30'} />
+                      <span className="text-[7px] font-black text-white/50 uppercase tracking-tighter">{t.targetLockCoords.split(' ')[0]}</span>
+                   </button>
+                </div>
+             )}
+
+             {/* Desktop-only Theme Switcher (already handled for mobile in header) */}
+             {!isMobile && (
+                <div className="hidden lg:flex flex-col items-end gap-3 ml-auto">
+                   <div className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] pr-4">{t.selectTerrain}</div>
+                   <MapThemeSwitcher align="right" direction="up" className="relative" />
+                </div>
+             )}
+
           </div>
+        </div>
       </div>
 
       {/* Floating Tactical Data (Cursor Hook) */}
@@ -334,14 +473,43 @@ const SentinelMap: React.FC = () => {
       <AnimatePresence>
         {hoveredCell && isMobile && (
             <motion.div 
-                initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
-                className="fixed bottom-32 left-8 right-8 z-[6000] p-6 rounded-[2.5rem] bg-[#05080D] border border-emerald-500/30 backdrop-blur-3xl shadow-2xl text-center"
+                initial={{ y: -20, opacity: 0 }} 
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: -20, opacity: 0 }}
+                className="fixed top-42 left-4 right-4 z-[6000] pointer-events-none"
             >
-                <div className="text-[9px] font-black text-white/40 uppercase tracking-[0.3em] mb-2">{t.liveSectorData}</div>
-                <div className="text-3xl font-mono font-black text-white mb-2">
-                    <SmoothValue value={hoveredCell.ndvi} />
+                <div className="flex items-center gap-3 bg-[#05080D]/80 backdrop-blur-2xl border border-white/10 rounded-2xl px-4 py-2.5 shadow-2xl">
+                    <div className="relative">
+                        <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 overflow-hidden">
+                           <Satellite size={14} className="text-emerald-400 animate-pulse" />
+                        </div>
+                        <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-[#05080D] animate-ping" />
+                    </div>
+                    
+                    <div className="flex-1 flex items-center justify-between min-w-0">
+                        <div className="flex flex-col">
+                            <span className="text-[7px] font-black text-white/30 uppercase tracking-[0.2em]">{t.liveSectorData}</span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-lg font-mono font-black text-white leading-none">
+                                    <SmoothValue value={hoveredCell.ndvi} />
+                                </span>
+                                <div className="h-3 w-px bg-white/10" />
+                                <span className="text-[9px] font-black uppercase tracking-tighter truncate" style={{ color: getColor(hoveredCell.ndvi) }}>
+                                    {getHeatLevel(hoveredCell.ndvi) === 'critical' ? t.criticalRiskArea.split(' ')[0] : getHeatLevel(hoveredCell.ndvi) === 'moderate' ? t.moderateStressZone.split(' ')[0] : t.stableEcosystem.split(' ')[0]}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div className="flex flex-col items-end">
+                            <div className="flex gap-0.5">
+                                {[1,2,3,4,5].map(i => (
+                                    <div key={i} className={`w-1 h-3 rounded-full ${i <= (hoveredCell.ndvi * 5) ? 'bg-emerald-400' : 'bg-white/10'}`} />
+                                ))}
+                            </div>
+                            <span className="text-[6px] font-mono text-white/20 mt-1 uppercase tracking-widest">Signal: Optimal</span>
+                        </div>
+                    </div>
                 </div>
-                <div className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">{getHeatLevel(hoveredCell.ndvi) === 'critical' ? t.criticalRiskArea : getHeatLevel(hoveredCell.ndvi) === 'moderate' ? t.moderateStressZone : t.stableEcosystem} // {t.optimalSync}</div>
             </motion.div>
         )}
       </AnimatePresence>

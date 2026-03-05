@@ -67,9 +67,9 @@ export default function MainDashboard() {
             const data = await getTreeRequests();
             const mapped: CommunityReport[] = (data || []).map((req: any) => ({
                 id: req.id.toString(),
-                author: req.name || "Anonymous Operative",
+                author: req.name || t.anonymousOperative,
                 avatar: (req.name || (language === 'en' ? "A" : language === 'fr' ? "A" : language === 'es' ? "A" : "ع")).charAt(0).toUpperCase(),
-                district: req.district || "Field Observation",
+                district: req.district || t.fieldObservation,
                 message: req.reason || "",
                 heatLevel: "moderate" as const,
                 ndvi: 0.35,
