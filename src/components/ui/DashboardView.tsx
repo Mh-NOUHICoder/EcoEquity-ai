@@ -3,18 +3,17 @@
 import React, { useRef } from "react";
 import { motion } from "framer-motion";
 import {
-  Thermometer, TreePine, Users, AlertTriangle, Leaf, Globe, ArrowRight, Activity, Zap, Info, Map as MapIcon, ChevronRight
+  Thermometer, TreePine, Users, AlertTriangle, Leaf, Globe, ArrowRight, Activity, Zap, Info, Map as MapIcon, ChevronRight, Sparkles
 } from "lucide-react";
 import { NDVI_GEOJSON, CITY_AVG_NDVI } from "@/lib/data";
 import { getColor, getHeatLevel } from "@/lib/ndvi";
 import { useApp } from "@/context/AppContext";
-import { translations } from "@/lib/translations";
-import SentinelData from "./SentinelData";
 import Tooltip from "./Tooltip";
+import { useTranslation } from "react-i18next";
 
 export default function DashboardView() {
   const { state, dispatch } = useApp();
-  const t = translations[state.language];
+  const { t } = useTranslation();
   const features = NDVI_GEOJSON.features;
   const criticalZones = features.filter((f) => f.properties.ndvi < 0.2);
   const totalPop = features.reduce((s, f) => s + f.properties.population, 0);
@@ -25,7 +24,18 @@ export default function DashboardView() {
 
   const handleScrollToMap = () => {
     dispatch({ type: "SET_VIEW", payload: "map" });
-    // In a real scenario, we might scroll to a specific section if they were on the same page.
+    
+    // Auto-focus on the highest priority zone
+    if (criticalZones.length > 0) {
+        const firstAlert = criticalZones[0];
+        const coords = firstAlert.geometry.type === 'Point' 
+            ? firstAlert.geometry.coordinates 
+            : firstAlert.geometry.coordinates[0][0];
+        
+        // Ensure we pass [lat, lng]
+        dispatch({ type: "SET_FOCUS_COORDS", payload: [coords[1], coords[0]] });
+    }
+
     setTimeout(() => {
         const mapSection = document.getElementById('main-map-container');
         if (mapSection) mapSection.scrollIntoView({ behavior: 'smooth' });
@@ -41,16 +51,16 @@ export default function DashboardView() {
             <div className="space-y-6">
               <div className="flex items-center gap-3">
                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_15px_#10b981]" />
-                 <p className="text-[11px] font-black text-emerald-400 uppercase tracking-[0.4em]">{t.globalEcoHUD}</p>
+                 <p className="text-[11px] font-black text-emerald-400 uppercase tracking-[0.4em]">{t('globalEcoHUD')}</p>
               </div>
               
               <div className="space-y-2">
                 <h1 className="font-display text-4xl lg:text-6xl text-white font-black tracking-tighter leading-none">
-                  {t.commandOverview}
+                  {t('commandOverview')}
                 </h1>
                 <p className="text-base text-white/70 max-w-xl leading-relaxed font-medium">
-                  {t.synthesizingData} <span className="text-white font-bold">{features.length} {t.activeSectors}</span>. 
-                  {t.satelliteTracking} <span className="text-white font-bold">{(totalPop / 1000).toFixed(0)}k {t.residents}</span>.
+                  {t('synthesizingData')} <span className="text-white font-bold">{features.length} {t('activeSectors')}</span>. 
+                  {t('satelliteTracking')} <span className="text-white font-bold">{(totalPop / 1000).toFixed(0)}k {t('residents')}</span>.
                 </p>
               </div>
 
@@ -60,7 +70,7 @@ export default function DashboardView() {
                 className="flex items-center gap-3 px-8 py-4 bg-emerald-500 hover:bg-emerald-400 text-obsidian-950 rounded-2xl font-black text-xs uppercase tracking-widest transition-all hover:scale-105 active:scale-95 shadow-[0_10px_30px_rgba(16,185,129,0.3)] group"
               >
                 <AlertTriangle size={18} className="animate-bounce" />
-                {t.identifyPriorityZones}
+                {t('identifyPriorityZones')}
                 <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
               </button>
             </div>
@@ -69,8 +79,8 @@ export default function DashboardView() {
                 <div className="flex items-center gap-8 bg-black/40 border border-white/10 rounded-[3rem] p-8 lg:p-10 shadow-2xl backdrop-blur-md">
                     <div className="flex flex-col">
                         <div className="flex items-center gap-2 mb-2">
-                            <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">{t.avgGlobalNDVI}</span>
-                            <Tooltip id="ndvi-main-tip" content={t.ndviExplanation} />
+                            <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">{t('avgGlobalNDVI')}</span>
+                            <Tooltip id="ndvi-main-tip" content={t('ndviExplanation')} />
                         </div>
                         <span className="text-5xl lg:text-7xl font-mono font-black text-emerald-400 leading-none">
                             {CITY_AVG_NDVI.toFixed(2)}
@@ -79,43 +89,106 @@ export default function DashboardView() {
                     <div className="w-px h-16 bg-white/10" />
                     <div className="flex flex-col items-center">
                         <Activity className="text-emerald-400 mb-3" size={24} />
-                        <span className="text-[9px] font-black text-white/60 uppercase tracking-widest">{t.liveSync}</span>
+                        <span className="text-[9px] font-black text-white/60 uppercase tracking-widest">{t('liveSync')}</span>
                     </div>
                 </div>
-                <p className="text-[10px] font-mono text-white/20 italic pr-4 uppercase tracking-tighter">REF: ECO-SYNC-STABLE-v4.2</p>
+                <p className="text-[10px] font-mono text-white/20 italic pr-4 uppercase tracking-tighter">REF: ECO-SYNC-STABLE-v4.2 | DATA DATE: {new Date().toISOString().split('T')[0]}</p>
             </div>
         </div>
+      </motion.div>
+
+
+      {/* NEURAL INTELLIGENCE SIMULATION (NEW) */}
+      <motion.div variants={item} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 glass rounded-[2.5rem] p-8 border border-emerald-500/20 bg-emerald-500/[0.02] relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+                <Sparkles size={80} className="text-emerald-400" />
+              </div>
+              <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                      <Zap size={20} className="text-emerald-400" />
+                  </div>
+                  <h3 className="text-sm font-black text-white uppercase tracking-[0.3em]">{t('neuralAdvisoryHub')}</h3>
+              </div>
+              
+              <div className="space-y-6 relative z-10">
+                  <div className="space-y-2">
+                    <h4 className="text-xl font-black text-white">{t('aiInsights')}</h4>
+                    <p className="text-sm text-white/50 leading-relaxed font-medium max-w-2xl uppercase">
+                        {t('aiIdentifyPriority')} <span className="text-emerald-400 font-black">{criticalZones[0]?.properties.name || "N/A"}</span> {t('highestPriorityFor')} 
+                        <span className="block mt-1 text-white/70 italic lowercase normal-case">{t('thermalSpikeDetected')}</span>
+                    </p>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-4">
+                      <div className="px-5 py-3 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center gap-3">
+                          <Activity size={16} className="text-emerald-400" />
+                          <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">{t('confidence')}: 0.98</span>
+                      </div>
+                      <div className="px-5 py-3 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center gap-3">
+                          <Leaf size={16} className="text-emerald-400" />
+                          <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">{t('impact')}: {t('impactHigh')}</span>
+                      </div>
+                  </div>
+                  
+                  <button 
+                    onClick={() => {
+                        dispatch({ type: "SELECT_FEATURE", payload: criticalZones[0] });
+                        dispatch({ type: "SET_VIEW", payload: "ai" });
+                    }}
+                    className="flex items-center gap-3 text-[10px] font-black text-emerald-400 uppercase tracking-widest hover:gap-5 transition-all group"
+                  >
+                    {t('viewTheoreticalIntervention')}
+                    <ArrowRight size={14} />
+                  </button>
+              </div>
+          </div>
+
+          <div className="glass rounded-[2.5rem] p-8 border border-white/5 bg-white/[0.01] flex flex-col justify-center">
+              <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">{t('intelligenceNode')}</span>
+                  </div>
+                  <h5 className="text-3xl font-black text-white tracking-tighter uppercase leading-none">
+                    {t('predictiveAnalysis').split(' ')[0]} <br/> {t('predictiveAnalysis').split(' ').slice(1).join(' ')}
+                  </h5>
+                  <p className="text-[11px] font-bold text-white/30 uppercase leading-relaxed">
+                    {t('predictiveTrend')}
+                  </p>
+              </div>
+          </div>
       </motion.div>
 
       {/* Stats Grid */}
       <motion.div variants={item} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <StatCard 
             icon={<AlertTriangle size={20} />} 
-            label={t.thermalAlerts} 
+            label={t('thermalAlerts')} 
             value={criticalZones.length.toString()} 
-            sub={t.activeFocusAreas} 
+            sub={t('activeFocusAreas')} 
             color="red" 
             hasAlert={criticalZones.length > 0}
         />
         <StatCard 
             icon={<Thermometer size={20} />} 
-            label={t.surfaceEnergy} 
+            label={t('surfaceEnergy')} 
             value={`${avgTemp.toFixed(1)}°C`} 
-            sub={t.surfaceTempHelper} 
+            sub={t('surfaceTempHelper')} 
             color="amber" 
         />
         <StatCard 
             icon={<TreePine size={20} />} 
-            label={t.biosphereCount} 
+            label={t('biosphereCount')} 
             value={totalTrees.toLocaleString()} 
-            sub={t.vegetationUnits} 
+            sub={t('vegetationUnits')} 
             color="green" 
         />
         <StatCard 
             icon={<Globe size={20} />} 
-            label={t.coverage} 
-            value={t.global.toUpperCase()} 
-            sub={t.satelliteLink} 
+            label={t('coverage')} 
+            value={t('global').toUpperCase()} 
+            sub={t('satelliteLink')} 
             color="blue" 
         />
       </motion.div>
@@ -126,8 +199,8 @@ export default function DashboardView() {
           <div className="flex items-center gap-4">
             <Zap size={20} className="text-emerald-400" />
             <div className="space-y-0.5">
-                <h2 className="text-xs font-black text-white uppercase tracking-[0.3em]">{t.sectorRegistry}</h2>
-                <p className="text-[10px] text-white/40 font-medium uppercase">{t.satelliteFeed}</p>
+                <h2 className="text-xs font-black text-white uppercase tracking-[0.3em]">{t('sectorRegistry')}</h2>
+                <p className="text-[10px] text-white/40 font-medium uppercase">{t('satelliteFeed')}</p>
             </div>
           </div>
           <button 
@@ -135,7 +208,7 @@ export default function DashboardView() {
             className="flex items-center gap-3 px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-[11px] font-black text-emerald-400 hover:bg-emerald-500 hover:text-obsidian-950 transition-all uppercase tracking-widest group"
           >
             <MapIcon size={16} />
-            {t.deployMap}
+            {t('deployMap')}
             <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
           </button>
         </div>
@@ -162,7 +235,7 @@ export default function DashboardView() {
                         <div className="space-y-1">
                             <span className="text-sm font-black text-white uppercase tracking-tight group-hover:text-emerald-400 transition-colors">{name}</span>
                             <div className="flex items-center gap-2">
-                                <span className="text-[10px] text-white/40 uppercase font-black tracking-widest">Spectral Integrity</span>
+                                <span className="text-[10px] text-white/40 uppercase font-black tracking-widest">{t('spectralIntegrity')}</span>
                                 <div className="w-1 h-1 rounded-full bg-emerald-500/50" />
                                 <span className="text-[10px] text-white/40 uppercase font-mono">{temp.toFixed(1)}°C</span>
                             </div>
@@ -170,7 +243,7 @@ export default function DashboardView() {
                         <div className="flex flex-col items-end">
                             <div className="flex items-center gap-1.5">
                                 <span className="text-sm font-mono font-black tabular-nums" style={{ color }}>{ndvi.toFixed(3)}</span>
-                                <Tooltip id={`ndvi-tip-${name}`} content={t.ndviExplanation} />
+                                <Tooltip id={`ndvi-tip-${name}`} content={t('ndviExplanation')} />
                             </div>
                             <span className="text-[9px] font-black text-white/20 uppercase tracking-widest">NDVI Index</span>
                         </div>
@@ -192,7 +265,7 @@ export default function DashboardView() {
                     level === "moderate" ? "text-amber-400 border-amber-500/30 bg-amber-400/5" : "text-emerald-400 border-emerald-500/30 bg-emerald-400/5"
                   }`}>
                     {level === "critical" && <AlertTriangle size={12} className="animate-pulse" />}
-                    {level === "critical" ? t.criticalRiskArea : level === "moderate" ? t.moderateStressZone : t.stableEcosystem}
+                    {level === "critical" ? t('criticalRiskArea') : level === "moderate" ? t('moderateStressZone') : t('stableEcosystem')}
                   </div>
                 </div>
               );

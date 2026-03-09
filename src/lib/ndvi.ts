@@ -1,4 +1,4 @@
-import { HeatLevel } from "@/types";
+import { HeatLevel, NDVIFeature, NDVIGeoJSON } from "@/types";
 
 export function getColor(ndvi: number): string {
   if (ndvi < 0.2) return "#ef4444"; // Red/Critical
@@ -47,4 +47,15 @@ export const getSmoothColor = (value: number) => {
     const b = Math.round(11 + (94 - 11) * factor);
     return `rgb(${r}, ${g}, ${b})`;
   }
+};
+
+export const findDistrictByCoords = (lat: number, lng: number, geojson: NDVIGeoJSON): NDVIFeature | undefined => {
+  return geojson.features.find(f => {
+    if (f.geometry.type !== "Polygon") return false;
+    const coords = f.geometry.coordinates[0];
+    const lats = coords.map((c: any) => c[1]);
+    const lngs = coords.map((c: any) => c[0]);
+    return lat >= Math.min(...lats) && lat <= Math.max(...lats) &&
+           lng >= Math.min(...lngs) && lng <= Math.max(...lngs);
+  });
 };

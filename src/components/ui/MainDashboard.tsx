@@ -9,14 +9,13 @@ import CommunityFeed from "@/components/ui/CommunityFeed";
 import AIInsightsPanel from "@/components/ui/AIInsightsPanel";
 import DashboardView from "@/components/ui/DashboardView";
 import { useApp } from "@/context/AppContext";
-import { translations } from "@/lib/translations";
 import { getTreeRequests } from "@/lib/supabase/supabase";
 import { CommunityReport } from "@/types";
+import { useTranslation } from "react-i18next";
 
 // Map Loader Component for Translated Load states
 const MapLoader = ({ messageKey, color = "emerald" }: { messageKey: string; color?: "emerald" | "sky" }) => {
-  const { state } = useApp();
-  const t = translations[state.language];
+  const { t } = useTranslation();
   const colorClasses = color === "emerald" ? "border-emerald-500/30 border-t-emerald-400" : "border-sky-500/30 border-t-sky-400";
   const textClasses = color === "emerald" ? "text-white/30" : "text-slate-400";
   
@@ -24,7 +23,7 @@ const MapLoader = ({ messageKey, color = "emerald" }: { messageKey: string; colo
     <div className={`w-full h-full flex items-center justify-center ${color === "emerald" ? "bg-obsidian-950" : "bg-slate-900"}`}>
       <div className="flex flex-col items-center gap-3">
         <div className={`w-8 h-8 border-2 rounded-full animate-spin ${colorClasses}`} />
-        <p className={`text-sm font-mono tracking-widest uppercase ${textClasses}`}>{t[messageKey] || "Loading..."}</p>
+        <p className={`text-sm font-mono tracking-widest uppercase ${textClasses}`}>{t(messageKey) || "Loading..."}</p>
       </div>
     </div>
   );
@@ -44,7 +43,7 @@ const SentinelMap = dynamic(() => import("@/components/maps/SentinelMap"), {
 export default function MainDashboard() {
   const { state, dispatch } = useApp();
   const { activeView, language } = state;
-  const t = translations[language];
+  const { t } = useTranslation();
 
   // 1. Global Geolocation Sync
   useEffect(() => {
@@ -67,9 +66,9 @@ export default function MainDashboard() {
             const data = await getTreeRequests();
             const mapped: CommunityReport[] = (data || []).map((req: any) => ({
                 id: req.id.toString(),
-                author: req.name || t.anonymousOperative,
+                author: req.name || t('anonymousOperative'),
                 avatar: (req.name || (language === 'en' ? "A" : language === 'fr' ? "A" : language === 'es' ? "A" : "ع")).charAt(0).toUpperCase(),
-                district: req.district || t.fieldObservation,
+                district: req.district || t('fieldObservation'),
                 message: req.reason || "",
                 heatLevel: "moderate" as const,
                 ndvi: 0.35,
@@ -83,7 +82,7 @@ export default function MainDashboard() {
         }
     }
     fetchReports();
-  }, [dispatch]);
+  }, [dispatch, language, t]);
 
   const isMapView = activeView === "map";
   const isDashboard = activeView === "dashboard";
@@ -100,6 +99,32 @@ export default function MainDashboard() {
 
       <main className="flex-1 flex flex-col lg:flex-row overflow-hidden relative z-10 pt-16 lg:pt-0">
         <AnimatePresence mode="wait">
+          {/* MAP-BASED VIEWS (Persistent Map instance) */}
+          {(isMapView || isAI) && (
+            <motion.div
+              key="map-container"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex-1 flex flex-col lg:flex-row overflow-hidden h-full"
+            >
+              <div className="flex-1 relative min-h-[400px]">
+                <EcoMap />
+              </div>
+              
+              <motion.div 
+                key={isAI ? "ai-panel" : "community-panel"}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.3 }}
+                className="w-full lg:w-96 shrink-0 border-t lg:border-t-0 lg:border-l border-white/[0.06] overflow-hidden glass max-h-[50vh] lg:max-h-none"
+              >
+                {isAI ? <AIInsightsPanel /> : <CommunityFeed />}
+              </motion.div>
+            </motion.div>
+          )}
+
           {/* DASHBOARD VIEW */}
           {isDashboard && (
             <motion.div
@@ -107,28 +132,10 @@ export default function MainDashboard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="flex-1 overflow-hidden flex flex-col xl:flex-row"
+              className="flex-1 overflow-hidden flex flex-col xl:flex-row h-full"
             >
               <div className="flex-1 overflow-y-auto custom-scrollbar">
                 <DashboardView />
-              </div>
-              <div className="hidden xl:block w-96 shrink-0 border-l border-white/[0.06] overflow-hidden glass">
-                <CommunityFeed />
-              </div>
-            </motion.div>
-          )}
-
-          {/* MAP VIEW */}
-          {isMapView && (
-            <motion.div
-              key="map"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex-1 flex flex-col lg:flex-row overflow-hidden"
-            >
-              <div className="flex-1 relative min-h-[400px]">
-                <EcoMap />
               </div>
               <div className="hidden xl:block w-96 shrink-0 border-l border-white/[0.06] overflow-hidden glass">
                 <CommunityFeed />
@@ -151,32 +158,14 @@ export default function MainDashboard() {
             </motion.div>
           )}
 
-          {/* NEURAL CORE / AI */}
-          {isAI && (
-            <motion.div
-              key="ai"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="flex-1 flex flex-col lg:flex-row overflow-hidden"
-            >
-              <div className="flex-1 relative min-h-[400px]">
-                <EcoMap />
-              </div>
-              <div className="w-full lg:w-96 shrink-0 border-t lg:border-t-0 lg:border-l border-white/[0.06] overflow-hidden glass max-h-[50vh] lg:max-h-none">
-                <AIInsightsPanel />
-              </div>
-            </motion.div>
-          )}
-
-          {/* FIELD FEED / COMMUNITY */}
+          {/* FIELD FEED / COMMUNITY VIEW (Dedicated) */}
           {isCommunity && (
             <motion.div
               key="community"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex-1 overflow-hidden"
+              className="flex-1 overflow-hidden h-full"
             >
               <div className="h-full overflow-y-auto">
                 <CommunityFeed />

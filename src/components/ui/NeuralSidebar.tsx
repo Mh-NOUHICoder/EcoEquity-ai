@@ -7,12 +7,12 @@ import {
   Activity, ArrowRight, X, Satellite 
 } from "lucide-react";
 import { useApp } from "@/context/AppContext";
-import { translations } from "@/lib/translations";
 import { getColor } from "@/lib/ndvi";
+import { useTranslation } from "react-i18next";
 
 const NeuralSidebar: React.FC = () => {
   const { state, dispatch } = useApp();
-  const t = translations[state.language];
+  const { t } = useTranslation();
   const feature = state.selectedFeature;
 
   if (!feature) return null;
@@ -35,7 +35,7 @@ const NeuralSidebar: React.FC = () => {
               <Cpu size={14} className="text-emerald-400" />
             </div>
             <div className="space-y-0.5">
-              <h3 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">{t.districtAnalysis}</h3>
+              <h3 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">{t('districtAnalysis')}</h3>
               <p className="text-sm font-black text-white uppercase tracking-tight">{name}</p>
             </div>
           </div>
@@ -52,7 +52,7 @@ const NeuralSidebar: React.FC = () => {
           {/* Main Metric */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">{t.ndviIndex}</span>
+              <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">{t('ndviIndex')}</span>
               <span className="text-xs font-mono font-black py-1 px-3 rounded-md border border-white/5" style={{ color }}>{ndvi.toFixed(4)}</span>
             </div>
             <div className="h-24 relative flex items-end gap-1">
@@ -74,14 +74,14 @@ const NeuralSidebar: React.FC = () => {
             <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 space-y-2">
               <div className="flex items-center gap-2">
                 <Activity size={12} className="text-blue-400" />
-                <span className="text-[8px] font-black text-white/30 uppercase tracking-widest">{t.residents}</span>
+                <span className="text-[8px] font-black text-white/30 uppercase tracking-widest">{t('residents')}</span>
               </div>
               <div className="text-xl font-mono font-black text-white">{(population / 1000).toFixed(1)}k</div>
             </div>
             <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 space-y-2">
               <div className="flex items-center gap-2">
                 <Zap size={12} className="text-amber-400" />
-                <span className="text-[8px] font-black text-white/30 uppercase tracking-widest">{t.surfaceEnergy}</span>
+                <span className="text-[8px] font-black text-white/30 uppercase tracking-widest">{t('surfaceEnergy')}</span>
               </div>
               <div className="text-xl font-mono font-black text-white">{avgTemp.toFixed(1)}°C</div>
             </div>
@@ -94,14 +94,14 @@ const NeuralSidebar: React.FC = () => {
             </div>
             <div className="flex items-center gap-2">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-              <span className="text-[9px] font-black text-emerald-400 uppercase tracking-[0.3em]">{t.aiInsights}</span>
+              <span className="text-[9px] font-black text-emerald-400 uppercase tracking-[0.3em]">{t('aiInsights')}</span>
             </div>
             <p className="text-xs text-white/70 leading-relaxed font-medium">
-              Sector <span className="text-white font-black">{name}</span> exhibits {ndvi < 0.3 ? "critical thermal retention" : "stable biosynthetic output"}. 
-              Priority intervention: {ndvi < 0.3 ? "Immediate reforestation of core grid-points." : "Maintaining current canopy density levels."}
+              {t('sector')} <span className="text-white font-black">{name}</span> {t('exhibits')} {ndvi < 0.3 ? t('criticalThermalRetention') : t('stableBiosyntheticOutput')}. 
+              {t('priorityIntervention')}: {ndvi < 0.3 ? t('immediateReforestation') : t('maintainCanopy')}
             </p>
             <button className="w-full py-4 rounded-2xl bg-white/5 border border-white/10 text-[10px] font-black text-white uppercase tracking-[0.2em] hover:bg-white/10 transition-all flex items-center justify-center gap-2 group">
-              {t.requestCanopy} <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+              {t('requestCanopy')} <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
             </button>
           </div>
         </div>
@@ -109,8 +109,8 @@ const NeuralSidebar: React.FC = () => {
         {/* Footer Telemetry */}
         <div className="p-6 bg-white/[0.02] border-t border-white/5 flex items-center justify-between">
           <div className="flex flex-col">
-            <span className="text-[7px] font-black text-white/20 uppercase tracking-widest">{t.encryptionMessage.substring(0, 15)}...</span>
-            <span className="text-[9px] font-mono text-white/40 italic uppercase">{t.stableOps}</span>
+            <span className="text-[7px] font-black text-white/20 uppercase tracking-widest">{t('encryptionMessage').substring(0, 15)}...</span>
+            <span className="text-[9px] font-mono text-white/40 italic uppercase">{t('stableOps')}</span>
           </div>
           <div className="h-6 w-12 rounded bg-black/40 border border-white/5 flex items-center justify-center">
             <div className="flex gap-0.5">

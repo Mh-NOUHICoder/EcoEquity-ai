@@ -7,18 +7,18 @@ import ReportCard from "@/components/ui/ReportCard";
 import { MOCK_REPORTS } from "@/lib/data";
 import { HeatLevel } from "@/types";
 import { useApp } from "@/context/AppContext";
-import { translations } from "@/lib/translations";
+import { useTranslation } from "react-i18next";
 
 export default function CommunityFeed() {
   const { state, dispatch } = useApp();
-  const t = translations[state.language];
+  const { t } = useTranslation();
   const [activeFilter, setActiveFilter] = useState<HeatLevel | "all">("all");
 
   const localizedFilters: { label: string; value: HeatLevel | "all" }[] = [
-    { label: t.all, value: "all" },
-    { label: t.criticalRiskArea || "Critical", value: "critical" },
-    { label: t.moderateStressZone || "Moderate", value: "moderate" },
-    { label: t.stableEcosystem || "Healthy", value: "healthy" },
+    { label: t('all'), value: "all" },
+    { label: t('criticalRiskArea') || "Critical", value: "critical" },
+    { label: t('moderateStressZone') || "Moderate", value: "moderate" },
+    { label: t('stableEcosystem') || "Healthy", value: "healthy" },
   ];
 
   const allReports = [...state.reports, ...MOCK_REPORTS];
@@ -48,17 +48,17 @@ export default function CommunityFeed() {
                         <MessageSquare size={18} className="text-emerald-400" />
                     </div>
                     <div className="space-y-1">
-                        <h2 className="text-sm lg:text-base font-black text-white uppercase tracking-widest leading-none">{t.fieldFeed}</h2>
+                        <h2 className="text-sm lg:text-base font-black text-white uppercase tracking-widest leading-none">{t('fieldFeed')}</h2>
                         <div className="flex items-center gap-2">
                              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_#10b981]" />
-                             <span className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">{t.liveSync}</span>
+                             <span className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">{t('liveSync')}</span>
                         </div>
                     </div>
                 </div>
             </div>
             {/* NEW DESCRIPTION */}
             <p className="text-[11px] lg:text-xs text-white/60 font-medium leading-relaxed max-w-xs">
-                {t.communityReportsDescription}
+                {t('communityReportsDescription')}
             </p>
         </div>
 
@@ -87,8 +87,8 @@ export default function CommunityFeed() {
                     <Plus size={20} className="text-obsidian-900" />
                 </div>
                 <div className="flex flex-col items-start px-1">
-                    <span className="text-[11px] font-black uppercase tracking-widest leading-none mb-1">{t.submitRequest}</span>
-                    <span className="text-[9px] font-bold opacity-60 tracking-tight uppercase">{t.locateMe}</span>
+                    <span className="text-[11px] font-black uppercase tracking-widest leading-none mb-1">{t('submitRequest')}</span>
+                    <span className="text-[9px] font-bold opacity-60 tracking-tight uppercase">{t('locateMe')}</span>
                 </div>
             </div>
             <MapPin size={18} className="relative z-10 opacity-40 group-hover:opacity-100 transition-opacity" />
@@ -124,7 +124,7 @@ export default function CommunityFeed() {
             <div className="w-24 h-24 rounded-[3rem] bg-white/[0.02] border border-white/5 flex items-center justify-center shadow-inner">
                 <MessageSquare size={40} className="text-white/[0.03]" />
             </div>
-            <p className="text-[12px] font-black text-white/20 uppercase tracking-[0.4em]">{t.selectLocation}</p>
+            <p className="text-[12px] font-black text-white/20 uppercase tracking-[0.4em]">{t('selectLocation')}</p>
           </div>
         ) : (
           filtered.map((report, i) => (

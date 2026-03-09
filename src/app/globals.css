@@ -2,6 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  html {
+    font-size: 110%;
+    /* Makes everything slightly bigger on all pages */
+  }
+
+  html[dir="rtl"] {
+    font-size: 135%;
+    /* Significantly larger for Arabic */
+  }
+
+  html[dir="rtl"] body {
+    font-family: 'Cairo', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+  }
+}
+
 @layer components {
   .glass {
     @apply bg-black/20 backdrop-blur-xl;

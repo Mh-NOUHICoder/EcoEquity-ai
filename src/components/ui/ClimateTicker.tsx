@@ -4,11 +4,11 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Activity, Shield, Zap, Globe, Cpu, Leaf } from "lucide-react";
 import { useApp } from "@/context/AppContext";
-import { translations } from "@/lib/translations";
+import { useTranslation } from "react-i18next";
 
 const ClimateTicker: React.FC = () => {
   const { state } = useApp();
-  const t = translations[state.language];
+  const { t } = useTranslation();
   const [logs, setLogs] = useState<string[]>([]);
 
   const environmentalLogs = [
@@ -33,7 +33,7 @@ const ClimateTicker: React.FC = () => {
       <div className="flex items-center px-4 lg:px-6 gap-2 bg-emerald-500/10 h-full border-r border-emerald-500/30">
         <Leaf size={12} className="text-emerald-400 animate-pulse" />
         <span className="text-[9px] font-black text-emerald-400 uppercase tracking-[0.2em] whitespace-nowrap">
-          {t.liveTelemetry}
+          {t('liveTelemetry')}
         </span>
       </div>
       
@@ -57,12 +57,12 @@ const ClimateTicker: React.FC = () => {
       <div className="hidden lg:flex items-center px-6 gap-8 h-full border-l border-white/5 bg-black/40">
         <div className="flex items-center gap-2">
           <Cpu size={12} className="text-cyan-400" />
-          <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">{t.neuralLoad}:</span>
+          <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">{t('neuralLoad')}:</span>
           <span className="text-[9px] font-mono font-black text-cyan-400">{(Math.random()*15 + 12).toFixed(1)}%</span>
         </div>
         <div className="flex items-center gap-2">
           <Globe size={12} className="text-emerald-400" />
-          <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">{t.activeNodes}:</span>
+          <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">{t('activeNodes')}:</span>
           <span className="text-[9px] font-mono font-black text-emerald-400">1,248</span>
         </div>
       </div>

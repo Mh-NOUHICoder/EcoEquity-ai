@@ -13,8 +13,8 @@ export interface NDVIFeature {
     avgTemp: number;
   };
   geometry: {
-    type: "Polygon";
-    coordinates: number[][][];
+    type: "Polygon" | "Point";
+    coordinates: any; 
   };
 }
 
@@ -57,3 +57,19 @@ export interface STACFeatureCollection {
 
 export type MapTheme = "dark" | "light" | "satellite" | "terrain";
 export type Language = "ar" | "en" | "es" | "fr";
+
+export interface AIRecommendation {
+  id: string;
+  type: "planting" | "cooling" | "policy" | "community";
+  title: string;
+  description: string;
+  impact: "high" | "medium" | "low";
+}
+
+export interface AIResult {
+  text: string;
+  riskScore: number; // 0-1
+  healthImpact: string;
+  recommendations: AIRecommendation[];
+  timestamp: string;
+}

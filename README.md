@@ -138,3 +138,5 @@ src/
 <div align="center">
   <b>EcoEquity AI: Engineering a cooler, more equitable urban future through aerospace intelligence.</b>
 </div>
+
+--- 

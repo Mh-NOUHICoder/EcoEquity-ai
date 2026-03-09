@@ -5,7 +5,7 @@ import { MAP_THEMES } from "@/lib/mapThemes";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { Map, Layers, Check } from "lucide-react";
-import { translations } from "@/lib/translations";
+import { useTranslation } from "react-i18next";
 
 export default function MapThemeSwitcher({ className, align = "left", direction = "down", showText = true }: { 
   className?: string, 
@@ -14,7 +14,7 @@ export default function MapThemeSwitcher({ className, align = "left", direction 
   showText?: boolean
 }) {
   const { state, dispatch } = useApp();
-  const t = translations[state.language];
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
 
   const currentTheme = MAP_THEMES.find((t) => t.id === state.mapTheme) || MAP_THEMES[0];
@@ -31,7 +31,7 @@ export default function MapThemeSwitcher({ className, align = "left", direction 
         </div>
         {showText && (
           <span className="text-[10px] font-black font-mono text-white/50 group-hover:text-white uppercase tracking-[0.3em] transition-colors">
-            {t[`theme_${currentTheme.id}`] || currentTheme.name}
+            {t(`theme_${currentTheme.id}`) || currentTheme.name}
           </span>
         )}
       </button>
@@ -53,7 +53,7 @@ export default function MapThemeSwitcher({ className, align = "left", direction 
           >
             <div className="px-3 py-2 border-b border-white/5 mb-1">
               <p className="text-[9px] uppercase tracking-[0.3em] text-cyan-400 font-black">
-                {t.selectTerrain}
+                {t('selectTerrain')}
               </p>
             </div>
             {MAP_THEMES.map((theme) => (
@@ -78,7 +78,7 @@ export default function MapThemeSwitcher({ className, align = "left", direction 
                   <span className={`text-[12px] font-bold tracking-wide ${
                     state.mapTheme === theme.id ? "text-white" : "text-white/60"
                   }`}>
-                    {t[`theme_${theme.id}`] || theme.name}
+                    {t(`theme_${theme.id}`) || theme.name}
                   </span>
                 </div>
                 {state.mapTheme === theme.id && (

@@ -1,29 +1,138 @@
-import { NDVIFeature } from "@/types";
+import { NDVIFeature, Language, AIResult, AIRecommendation } from "@/types";
 import { CITY_AVG_NDVI } from "./data";
 
-// This is a mock function. In a real application, this would
-// make a call to the Google Gemini API.
-export async function generateAIInsight(feature: NDVIFeature): Promise<string> {
+export async function generateAIInsight(feature: NDVIFeature, lang: Language = "en"): Promise<AIResult> {
   const { name, ndvi, population, treeCount, avgTemp } = feature.properties;
   const diff = ((ndvi - CITY_AVG_NDVI) / CITY_AVG_NDVI) * 100;
   const isHot = ndvi < 0.2;
+  const riskScore = Math.min(1, Math.max(0, 1 - (ndvi * 1.2)));
 
   // Simulate API call delay
-  await new Promise(res => setTimeout(res, 800 + Math.random() * 500));
+  await new Promise(res => setTimeout(res, 1200 + Math.random() * 500));
 
-  if (isHot) {
-    return `
-      ${name} is a critical heat island with an NDVI of ${ndvi.toFixed(2)}, which is 
-      ${Math.abs(diff).toFixed(0)}% below the city average. The high average temperature of 
-      ${avgTemp}°C, combined with a low tree count of ${treeCount} for a population of 
-      ${population.toLocaleString()}, poses significant health risks. Urgent greening interventions, 
-      such as planting shade trees, are recommended to mitigate heat stress.
-    `;
-  }
+  const content = {
+    en: {
+        hot: {
+            text: `${name} is a critical heat island with an NDVI of ${ndvi.toFixed(2)}, which is ${Math.abs(diff).toFixed(0)}% below the city average.`,
+            healthImpact: "High risk of heatstroke and respiratory distress in vulnerable populations.",
+            recTitles: ["Emergency Canopy", "Cooling Station", "Urban Policy"],
+            recDescs: [
+                "Deploy rapid-growth shade trees in residential corridors.",
+                "Establish accessible cooling centers within 500m of this sector.",
+                "Implement reflective 'cool roof' requirements for new developments."
+            ]
+        },
+        stable: {
+            text: `${name} has an NDVI of ${ndvi.toFixed(2)}, which is ${diff > 0 ? `${diff.toFixed(0)}% above` : `${Math.abs(diff).toFixed(0)}% below`} the city average.`,
+            healthImpact: "Minimal environmental health risks detected. Ecosystem cooling is optimal.",
+            recTitles: ["Preservation", "Community Garden", "Biodiversity Link"],
+            recDescs: [
+                "Maintain existing canopy density through regular biosystem audits.",
+                "Incentivize local community gardens to further boost neighborhood cooling.",
+                "Create green corridors connecting this sector to adjacent higher-risk zones."
+            ]
+        }
+    },
+    ar: {
+        hot: {
+            text: `يعاني ${name} من جزر حرارية حرجة مع مؤشر NDVI قدره ${ndvi.toFixed(2)}، وهو أقل بنسبة ${Math.abs(diff).toFixed(0)}% من متوسط المدينة.`,
+            healthImpact: "خطر كبير للإصابة بضربات الشمس وضيق التنفس لدى الفئات الضعيفة.",
+            recTitles: ["مظلة الطوارئ", "محطة تبريد", "السياسة الحضرية"],
+            recDescs: [
+                "نشر أشجار الظل سريعة النمو في الممرات السكنية.",
+                "إنشاء مراكز تبريد يمكن الوصول إليها على بعد 500 متر من هذا القطاع.",
+                "تنفيذ متطلبات 'الأسطح الباردة' العاكسة للتطورات الجديدة."
+            ]
+        },
+        stable: {
+            text: `يتمتع ${name} بمؤشر NDVI قدره ${ndvi.toFixed(2)}، وهو ${diff > 0 ? `أعلى بنسبة ${diff.toFixed(0)}%` : `أقل بنسبة ${Math.abs(diff).toFixed(0)}%`} من متوسط المدينة.`,
+            healthImpact: "تم اكتشاف حد أدنى من المخاطر الصحية البيئية. تبريد النظام البيئي مثالي.",
+            recTitles: ["الحفاظ", "حديقة مجتمعية", "رابط التنوع البيولوجي"],
+            recDescs: [
+                "الحفاظ على كثافة المظلة الحالية من خلال عمليات تدقيق منتظمة للنظام الحيوي.",
+                "تحفيز الحدائق المجتمعية المحلية لتعزيز تبريد الأحياء.",
+                "إنشاء ممرات خضراء تربط هذا القطاع بالمناطق المجاورة ذات المخاطر العالية."
+            ]
+        }
+    },
+    fr: {
+        hot: {
+            text: `${name} est un îlot de chaleur critique avec un NDVI de ${ndvi.toFixed(2)}.`,
+            healthImpact: "Risque élevé de coup de chaleur et de détresse respiratoire.",
+            recTitles: ["Canopée d'urgence", "Station de refroidissement", "Politique urbaine"],
+            recDescs: [
+                "Planter des arbres d'ombrage à croissance rapide.",
+                "Établir des centres de refroidissement accessibles.",
+                "Mettre en œuvre des toits réfléchissants."
+            ]
+        },
+        stable: {
+            text: `${name} a un NDVI de ${ndvi.toFixed(2)}.`,
+            healthImpact: "Risques sanitaires minimes. Le refroidissement de l'écosystème est optimal.",
+            recTitles: ["Préservation", "Jardin communautaire", "Lien biodiversité"],
+            recDescs: [
+                "Maintenir la densité de la canopée existante.",
+                "Encourager les jardins communautaires locaux.",
+                "Créer des corridors verts."
+            ]
+        }
+    },
+    es: {
+        hot: {
+            text: `${name} es una isla de calor crítica con un NDVI de ${ndvi.toFixed(2)}.`,
+            healthImpact: "Alto riesgo de golpe de calor y problemas respiratorios.",
+            recTitles: ["Dosel de emergencia", "Estación de enfriamiento", "Política urbana"],
+            recDescs: [
+                "Desplegar árboles de sombra de rápido crecimiento.",
+                "Establecer centros de enfriamiento accesibles.",
+                "Implementar techos reflectantes."
+            ]
+        },
+        stable: {
+            text: `${name} tiene un NDVI de ${ndvi.toFixed(2)}.`,
+            healthImpact: "Riesgos ambientales mínimos. El enfriamiento del ecosistema es óptimo.",
+            recTitles: ["Preservación", "Jardín comunitario", "Enlace de biodiversidad"],
+            recDescs: [
+                "Mantener la densidad del dosel existente.",
+                "Incentivar jardines comunitarios locales.",
+                "Crear corredores verdes."
+            ]
+        }
+    }
+  };
 
-  return `
-    ${name} has an NDVI of ${ndvi.toFixed(2)}, which is ${diff > 0 ? `${diff.toFixed(0)}% above` : `${Math.abs(diff).toFixed(0)}% below`} 
-    the city average. With a population of ${population.toLocaleString()} and ${treeCount} trees, its thermal profile is relatively stable. 
-    Continued investment in maintaining its green spaces is advised.
-  `;
+  const translations = content[lang] || content.en;
+  const activeData = isHot ? translations.hot : translations.stable;
+
+  const recommendations: AIRecommendation[] = [
+    {
+      id: "rec-1",
+      type: isHot ? "planting" : "policy",
+      title: activeData.recTitles[0],
+      description: activeData.recDescs[0],
+      impact: "high"
+    },
+    {
+      id: "rec-2",
+      type: isHot ? "cooling" : "community",
+      title: activeData.recTitles[1],
+      description: activeData.recDescs[1],
+      impact: "medium"
+    },
+    {
+        id: "rec-3",
+        type: isHot ? "policy" : "community",
+        title: activeData.recTitles[2],
+        description: activeData.recDescs[2],
+        impact: "low"
+      }
+  ];
+
+  return {
+    text: activeData.text,
+    riskScore,
+    healthImpact: activeData.healthImpact,
+    recommendations,
+    timestamp: new Date().toLocaleTimeString()
+  };
 }

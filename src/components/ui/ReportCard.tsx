@@ -6,8 +6,8 @@ import { useState } from "react";
 import { CommunityReport, HeatLevel } from "@/types";
 import { formatNDVI, getColor } from "@/lib/ndvi";
 import { useApp } from "@/context/AppContext";
-import { translations } from "@/lib/translations";
 import Tooltip from "./Tooltip";
+import { useTranslation } from "react-i18next";
 
 interface ReportCardProps {
   report: CommunityReport;
@@ -34,14 +34,14 @@ const heatStyles = {
 
 export default function ReportCard({ report, index }: ReportCardProps) {
   const { state, dispatch } = useApp();
-  const t = translations[state.language];
+  const { t } = useTranslation();
   const [upvoted, setUpvoted] = useState(false);
   const [votes, setVotes] = useState(report.upvotes);
 
   const getHeatLabel = (level: HeatLevel) => {
-    if (level === "critical") return t.criticalRiskArea;
-    if (level === "moderate") return t.moderateStressZone;
-    return t.stableEcosystem;
+    if (level === "critical") return t('criticalRiskArea');
+    if (level === "moderate") return t('moderateStressZone');
+    return t('stableEcosystem');
   };
 
   const style = heatStyles[report.heatLevel];
@@ -81,12 +81,12 @@ export default function ReportCard({ report, index }: ReportCardProps) {
           <div className="relative w-14 h-14 shrink-0">
             <div className={`absolute inset-0 rounded-[1.25rem] blur-xl opacity-20 ${report.heatLevel === "critical" ? "bg-red-500" : report.heatLevel === "moderate" ? "bg-amber-500" : "bg-emerald-500"}`} />
             <div className="relative w-14 h-14 rounded-[1.25rem] bg-obsidian-900 border border-white/10 flex items-center justify-center shadow-inner group-hover:border-emerald-500/30 transition-colors">
-              <span className="text-[14px] font-black text-white/90 uppercase tracking-widest">{report.avatar || (report.author === "Anonymous Operative" ? t.anonymousOperative.charAt(0) : report.author.charAt(0))}</span>
+              <span className="text-[14px] font-black text-white/90 uppercase tracking-widest">{report.avatar || (report.author === "Anonymous Operative" ? t('anonymousOperative').charAt(0) : report.author.charAt(0))}</span>
             </div>
           </div>
           <div className="space-y-1">
             <h4 className="text-[13px] font-black text-white tracking-widest uppercase transition-colors group-hover:text-emerald-400">
-                {report.author === "Anonymous Operative" ? t.anonymousOperative : report.author}
+                {report.author === "Anonymous Operative" ? t('anonymousOperative') : report.author}
             </h4>
             <div className="flex items-center gap-2 text-white/40">
               <MapPin size={10} className="text-emerald-400" />
@@ -113,8 +113,8 @@ export default function ReportCard({ report, index }: ReportCardProps) {
       <div className="space-y-3 mb-6">
         <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em]">{t.environmentalIndex}</span>
-                <Tooltip id={`ndvi-report-tip-${report.id}`} content={t.ndviExplanation} />
+                <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em]">{t('environmentalIndex')}</span>
+                <Tooltip id={`ndvi-report-tip-${report.id}`} content={t('ndviExplanation')} />
             </div>
             <span className="text-[12px] font-mono font-black" style={{ color: getColor(report.ndvi) }}>
                 NDVI {report.ndvi.toFixed(3)}
@@ -142,7 +142,7 @@ export default function ReportCard({ report, index }: ReportCardProps) {
                 className="flex items-center gap-2 text-emerald-400/60 hover:text-emerald-400 transition-colors bg-emerald-400/5 px-4 py-2 rounded-xl border border-emerald-400/10 hover:border-emerald-400/30 shadow-lg"
              >
                 <SearchCode size={14} />
-                <span className="text-[10px] font-black uppercase tracking-widest">{t.analyzeSpatialData}</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">{t('analyzeSpatialData')}</span>
              </motion.button>
         </div>
         

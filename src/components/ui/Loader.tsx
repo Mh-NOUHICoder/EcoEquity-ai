@@ -8,7 +8,10 @@ interface LoaderProps {
   isLoading?: boolean;
 }
 
+import { useTranslation } from "react-i18next";
+
 const Loader: React.FC<LoaderProps> = ({ isLoading = true }) => {
+  const { t } = useTranslation();
   return (
     <AnimatePresence>
       {isLoading && (
@@ -119,7 +122,7 @@ const Loader: React.FC<LoaderProps> = ({ isLoading = true }) => {
                 <div className="flex items-center gap-3">
                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,1)] animate-pulse" />
                    <span className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">
-                      Neural Uplink Active
+                      {t('neuralUplinkActive')}
                    </span>
                 </div>
              </motion.div>
@@ -128,7 +131,7 @@ const Loader: React.FC<LoaderProps> = ({ isLoading = true }) => {
           {/* 4. LOADING PROGRESS */}
           <div className="absolute bottom-20 w-full max-w-xs px-8">
              <div className="flex justify-between items-end mb-3">
-                <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em]">Quantum Sequencing</span>
+                <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em]">{t('quantumSequencing')}</span>
                 <span className="text-[11px] font-mono font-black text-emerald-400 tracking-tighter">100% SYNC</span>
              </div>
              <div className="h-[1px] w-full bg-white/5 rounded-full overflow-hidden relative">

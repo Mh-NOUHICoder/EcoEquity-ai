@@ -4,12 +4,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, TreePine, MapPin, User, Mail, FileText, CheckCircle2, Sprout, ShieldCheck } from "lucide-react";
 import { useState, FormEvent } from "react";
 import { useApp } from "@/context/AppContext";
-import { translations } from "@/lib/translations";
 import { submitTreeRequest } from "@/lib/supabase/supabase";
+import { useTranslation } from "react-i18next";
 
 export default function TreeRequestModal() {
   const { state, dispatch } = useApp();
-  const t = translations[state.language];
+  const { t } = useTranslation();
   const [form, setForm] = useState({ name: "", email: "", reason: "" });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -26,11 +26,14 @@ export default function TreeRequestModal() {
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
-    if (!form.name.trim()) newErrors.name = "Name is required";
-    if (!form.email.trim() || !/\S+@\S+\.\S+/.test(form.email))
-      newErrors.email = "Valid email required";
+    if (!form.name.trim()) newErrors.name = t('nameRequired');
+    if (!form.email.trim()) {
+      newErrors.email = t('emailRequired');
+    } else if (!/\S+@\S+\.\S+/.test(form.email)) {
+      newErrors.email = t('invalidEmail');
+    }
     if (!form.reason.trim() || form.reason.length < 10)
-      newErrors.reason = "Please provide more detail (min 10 chars)";
+      newErrors.reason = t('reasonTooShort');
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -49,7 +52,7 @@ export default function TreeRequestModal() {
       
       const newReport = {
         id: Math.random().toString(36).substr(2, 9),
-        author: form.name || "Anonymous Operative",
+        author: form.name || t('anonymousOperative'),
         avatar: (form.name || "A").charAt(0).toUpperCase(),
         district: state.treeModalDistrict || "Global Sector",
         message: form.reason,
@@ -104,12 +107,12 @@ export default function TreeRequestModal() {
                       </div>
                       <div className="flex flex-col">
                         <h2 className="text-lg lg:text-xl font-black text-white uppercase tracking-tighter">
-                          {t.requestCanopy}
+                          {t('requestCanopy')}
                         </h2>
                         <div className="flex items-center gap-2">
                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                            <span className="text-[10px] font-black text-white/40 uppercase tracking-widest leading-none">
-                             {t.district}: {state.treeModalDistrict || "Global_Unassigned"}
+                             {t('district')}: {state.treeModalDistrict || "Global_Unassigned"}
                            </span>
                         </div>
                       </div>
@@ -136,16 +139,16 @@ export default function TreeRequestModal() {
                           <CheckCircle2 size={40} className="text-emerald-400" />
                         </div>
                         <h3 className="text-2xl font-black text-white uppercase tracking-tight mb-3">
-                          {t.protocolConfirmed}
+                          {t('protocolConfirmed')}
                         </h3>
                         <p className="text-white/40 text-sm leading-relaxed max-w-sm mb-8 font-medium">
-                          {t.uplinkMessage}
+                          {t('uplinkMessage')}
                         </p>
                         <button
                           onClick={close}
                           className="w-full py-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-black uppercase tracking-widest hover:bg-emerald-500/20 transition-all"
                         >
-                          {t.terminateLink}
+                          {t('terminateLink')}
                         </button>
                       </motion.div>
                     ) : (
@@ -160,7 +163,7 @@ export default function TreeRequestModal() {
                           <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/5 border border-white/10">
                             <MapPin size={14} className="text-cyan-400" />
                             <div className="flex flex-col">
-                               <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">{t.targetCoords}</span>
+                               <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">{t('targetCoords')}</span>
                                <span className="text-[11px] font-mono font-bold text-white/60">
                                  {state.treeModalCoords[0].toFixed(6)}°N // {state.treeModalCoords[1].toFixed(6)}°E
                                </span>
@@ -169,19 +172,19 @@ export default function TreeRequestModal() {
                         )}
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField icon={<User size={14} />} label={t.fullName} error={errors.name}>
+                            <FormField icon={<User size={14} />} label={t('fullName')} error={errors.name}>
                               <input
                                 type="text"
-                                placeholder={t.anonymousPlaceholder}
+                                placeholder={t('anonymousPlaceholder')}
                                 value={form.name}
                                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                                 className="w-full bg-transparent text-sm text-white placeholder-white/10 outline-none font-bold"
                               />
                             </FormField>
-                            <FormField icon={<Mail size={14} />} label={t.communicationId} error={errors.email}>
+                            <FormField icon={<Mail size={14} />} label={t('communicationId')} error={errors.email}>
                               <input
                                 type="email"
-                                placeholder={t.emailPlaceholder}
+                                placeholder={t('emailPlaceholder')}
                                 value={form.email}
                                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                                 className="w-full bg-transparent text-sm text-white placeholder-white/10 outline-none font-bold"
@@ -189,9 +192,9 @@ export default function TreeRequestModal() {
                             </FormField>
                         </div>
 
-                        <FormField icon={<FileText size={14} />} label={t.reason} error={errors.reason}>
+                        <FormField icon={<FileText size={14} />} label={t('reason')} error={errors.reason}>
                           <textarea
-                            placeholder={t.reasonPlaceholder}
+                            placeholder={t('reasonPlaceholder')}
                             rows={3}
                             value={form.reason}
                             onChange={(e) => setForm({ ...form, reason: e.target.value })}
@@ -202,7 +205,7 @@ export default function TreeRequestModal() {
                         <div className="flex items-center gap-3 px-4 py-3 border border-emerald-500/20 bg-emerald-500/5 rounded-2xl">
                            <ShieldCheck size={16} className="text-emerald-400" />
                            <p className="text-[9px] font-black text-emerald-400/60 uppercase tracking-widest leading-tight">
-                             {t.encryptionMessage}
+                             {t('encryptionMessage')}
                            </p>
                         </div>
 
@@ -220,7 +223,7 @@ export default function TreeRequestModal() {
                           ) : (
                             <TreePine size={18} />
                           )}
-                          {loading ? t.transmitting : t.submitRequest}
+                          {loading ? t('transmitting') : t('submitRequest')}
                         </motion.button>
                       </motion.form>
                     )}

@@ -22,10 +22,14 @@ interface LoadingScreenProps {
   message?: string;
 }
 
+import { useTranslation } from "react-i18next";
+
 const LoadingScreen: React.FC<LoadingScreenProps> = ({ 
   isLoading, 
-  message = "Initializing Systems" 
+  message
 }) => {
+  const { t } = useTranslation();
+  const displayMessage = message || t('initializingSystems');
   return (
     <AnimatePresence>
       {isLoading && (
@@ -141,7 +145,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
                 >
                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,1)] animate-pulse" />
                    <span className="text-[10px] lg:text-[11px] font-black uppercase tracking-[0.4em] text-white/60">
-                      {message}
+                      {displayMessage}
                    </span>
                 </motion.div>
              </motion.div>

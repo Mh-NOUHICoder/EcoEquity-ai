@@ -5,13 +5,7 @@ import { Language } from "@/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { Globe, ChevronDown, Check } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
-
-const languages: { id: Language; label: string; flag: string }[] = [
-  { id: "en", label: "English", flag: "🇬🇧" },
-  { id: "fr", label: "Français", flag: "🇫🇷" },
-  { id: "ar", label: "العربية", flag: "🇸🇦" },
-  { id: "es", label: "Español", flag: "🇪🇸" },
-];
+import { useTranslation } from "react-i18next";
 
 export default function LanguageSwitcher({ 
   className = "",
@@ -21,8 +15,16 @@ export default function LanguageSwitcher({
   variant?: "default" | "floating";
 }) {
   const { state, dispatch } = useApp();
+  const { t, i18n } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const languages: { id: Language; label: string; flag: string }[] = [
+    { id: "en", label: t('lang_en'), flag: "🇬🇧" },
+    { id: "fr", label: t('lang_fr'), flag: "🇫🇷" },
+    { id: "ar", label: t('lang_ar'), flag: "🇸🇦" },
+    { id: "es", label: t('lang_es'), flag: "🇪🇸" },
+  ];
 
   const currentLang = languages.find((l) => l.id === state.language) || languages[0];
 
@@ -35,6 +37,12 @@ export default function LanguageSwitcher({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const changeLanguage = (langId: Language) => {
+    i18n.changeLanguage(langId);
+    dispatch({ type: "SET_LANGUAGE", payload: langId });
+    setIsOpen(false);
+  };
 
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
@@ -89,16 +97,13 @@ export default function LanguageSwitcher({
               <>
                 <div className="px-3 py-2 border-b border-white/5 mb-1">
                   <p className="text-[9px] uppercase tracking-[0.3em] text-emerald-400 font-black">
-                    Select Language
+                    {t('selectLanguage')}
                   </p>
                 </div>
                 {languages.map((lang) => (
                   <button
                     key={lang.id}
-                    onClick={() => {
-                      dispatch({ type: "SET_LANGUAGE", payload: lang.id });
-                      setIsOpen(false);
-                    }}
+                    onClick={() => changeLanguage(lang.id)}
                     className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all ${
                       state.language === lang.id
                         ? "bg-emerald-500/20 border border-emerald-500/30"
@@ -124,10 +129,7 @@ export default function LanguageSwitcher({
                 {languages.map((lang) => (
                   <button
                     key={lang.id}
-                    onClick={() => {
-                      dispatch({ type: "SET_LANGUAGE", payload: lang.id });
-                      setIsOpen(false);
-                    }}
+                    onClick={() => changeLanguage(lang.id)}
                     className={`w-full flex items-center justify-between px-3 py-3 rounded-xl transition-all ${
                       state.language === lang.id
                         ? "bg-emerald-500/20 text-emerald-400"

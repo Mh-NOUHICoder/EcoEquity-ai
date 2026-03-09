@@ -4,15 +4,15 @@ import React, { useState, useEffect, useRef } from "react";
 import { Search, MapPin, X, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
-import { translations } from "@/lib/translations";
 import axios from "axios";
+import { useTranslation } from "react-i18next";
 
 // Using Nominatim (OpenStreetMap) for free Geocoding
 const NOMINATIM_URL = "https://nominatim.openstreetmap.org/search";
 
 export const MapSearch = () => {
   const { state, dispatch } = useApp();
-  const t = translations[state.language];
+  const { t } = useTranslation();
   
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<any[]>([]);
@@ -30,7 +30,7 @@ export const MapSearch = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleSearch = async (e?: React.FormEvent) => {
+  const handleSearch = React.useCallback(async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!query.trim()) return;
 
@@ -55,7 +55,21 @@ export const MapSearch = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [query, state.language]);
+
+  // Live suggestions effect
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      if (query.trim().length >= 3) {
+        handleSearch();
+      } else {
+        setResults([]);
+        setShowResults(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [query, handleSearch]);
 
   const handleSelect = (result: any) => {
     const coords: [number, number] = [parseFloat(result.lat), parseFloat(result.lon)];
@@ -68,7 +82,7 @@ export const MapSearch = () => {
   return (
     <div ref={searchRef} className="relative w-full max-w-sm lg:max-w-md mx-auto pointer-events-auto">
       <form 
-        onSubmit={handleSearch}
+        onSubmit={(e) => handleSearch(e)}
         className="relative group h-full"
       >
         <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none z-10">
@@ -82,17 +96,11 @@ export const MapSearch = () => {
         <input
           type="text"
           value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            if (!e.target.value) {
-                setResults([]);
-                setShowResults(false);
-            }
-          }}
+          onChange={(e) => setQuery(e.target.value)}
           onFocus={() => {
             if (results.length > 0) setShowResults(true);
           }}
-          placeholder={t.searchPlaceholder || "Search location..."}
+          placeholder={t('searchPlaceholder') || "Search location..."}
           className="w-full bg-[#05080D]/60 backdrop-blur-3xl border border-white/10 rounded-2xl lg:rounded-3xl py-3 lg:py-4 pl-12 pr-12 text-[11px] lg:text-sm font-black text-white placeholder:text-white/20 placeholder:uppercase placeholder:tracking-widest focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/40 transition-all shadow-2xl"
         />
 
@@ -118,7 +126,7 @@ export const MapSearch = () => {
             {isLoading ? (
               <div className="p-10 text-center space-y-3">
                 <Loader2 className="w-6 h-6 text-emerald-400 animate-spin mx-auto opacity-50" />
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400 animate-pulse">{t.searching}</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400 animate-pulse">{t('searching')}</p>
               </div>
             ) : results.length > 0 ? (
               <div className="max-h-[350px] overflow-y-auto custom-scrollbar">
@@ -147,7 +155,7 @@ export const MapSearch = () => {
                  <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-2 border border-white/10">
                     <X className="w-4 h-4 text-white/20" />
                  </div>
-                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">{t.noResults}</p>
+                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">{t('noResults')}</p>
               </div>
             )}
           </motion.div>
