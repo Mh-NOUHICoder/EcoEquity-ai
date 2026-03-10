@@ -24,6 +24,29 @@ Designed for the **EU-CODE WEEK Hackathon**, EcoEquity AI transforms complex Ear
 
 ---
 
+## 🛰️ The Data Journey: From Orbit to Action
+
+EcoEquity AI bridges the gap between aerospace telemetry and hyper-local urban advocacy. Our platform follows a specialized, four-stage lifecycle to transform raw spectral data into meaningful climate justice.
+
+1.  **Space-Layer Acquisition** 🛰️
+    The journey begins in low Earth orbit. We capture **high-resolution multispectral imagery** directly from the **Sentinel-2 satellite constellation**. This raw environmental data provides the foundation for our global monitoring capabilities, ensuring an objective, un-biased view of urban ecosystems in real-time.
+
+2.  **Neural Core Processing** 🧠
+    Once captured, the data enters our **AI-driven Neural Core**. Advanced algorithms perform deep spectral analysis to extract:
+    *   **Thermal Anomalies:** Identifying precise "Heat Islands" where temperatures exceed safe urban baselines.
+    *   **NDVI (Vegetation) Indices:** Quantifying the health and density of canopy cover to locate "Green Deserts."
+
+3.  **Community Validation** 👥
+    Data is only as powerful as the lived experience of the people it represents. Through our **Community Reports** feature, local residents act as ground-level sensors—validating AI predictions and reporting real-world thermal stress that satellites might miss. This fuses "top-down" technology with "bottom-up" human intelligence.
+
+4.  **Strategic Intervention** 🎯
+    The final output is a targeted **AI Strategy**. Our system synthesizes all data layers to generate actionable, site-specific solutions:
+    *   **Canopy Deployment Protocols:** Precise locations for new tree planting.
+    *   **Tactical Cooling Stations:** Optimal placement for temporary heat relief.
+    *   **Policy Advocacy Maps:** Data-backed evidence for urban planning reform.
+
+---
+
 ## ✨ Key Features & Real-Time Intelligence
 
 ### 📡 Sentinel-Enabled Satellite HUD
