@@ -337,17 +337,33 @@ export default function AIInsightsPanel() {
                                         <X size={16} className="group-hover/close:rotate-90 transition-transform" />
                                     </button>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">{state.selectedFeature.properties.district}</span>
-                                    <div className="w-1 h-1 rounded-full bg-emerald-400/20" />
-                                    <div className="flex items-center gap-1">
-                                        <CheckCircle2 size={10} className="text-emerald-400" />
-                                        <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">{t('stableStatus') || "Stable Status"}</span>
+                                 <div className="flex items-center gap-2">
+                                     <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">{state.selectedFeature.properties.district}</span>
+                                     <div className="w-1 h-1 rounded-full bg-emerald-400/20" />
+                                     <div className="flex items-center gap-2">
+                                         <CheckCircle2 size={10} className="text-emerald-400" />
+                                         <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">{t('stableStatus') || "Stable Status"}</span>
+                                     </div>
+                                 </div>
+                             </div>
+
+                             {/* Tactical Visualizer (Replacing missing image) */}
+                             <div className="relative w-24 h-24 shrink-0 group/viz ml-4">
+                                <div className="absolute inset-0 bg-emerald-500/10 rounded-[2rem] border border-white/10 overflow-hidden group-hover/viz:border-emerald-500/40 transition-colors shadow-2xl">
+                                    <motion.div 
+                                        animate={{ y: ["0%", "100%", "0%"] }}
+                                        transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                                        className="h-0.5 w-full bg-emerald-400 shadow-[0_0_15px_#10b981] relative z-20"
+                                    />
+                                    <div className="absolute inset-0 flex items-center justify-center opacity-40">
+                                        <Satellite size={40} className="text-emerald-400" />
                                     </div>
+                                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_transparent_0%,_rgba(0,0,0,0.4)_100%)]" />
                                 </div>
-                            </div>
-                            
-                            {state.isLoadingInsight ? (
+                                <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-obsidian-950 animate-pulse z-30" />
+                             </div>
+                             
+                             {state.isLoadingInsight ? (
                                 <div className="px-4 py-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-2 backdrop-blur-md">
                                     <Activity size={14} className="text-emerald-400 animate-spin" />
                                     <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">{t('processing')}</span>

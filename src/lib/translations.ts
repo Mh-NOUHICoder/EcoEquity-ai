@@ -183,7 +183,11 @@ export const translations: Record<Language, any> = {
     implementEmergencyProtocols: "Implement emergency heat protocols",
     stableStatus: "Stable Status",
     requestCanopySupport: "Request Canopy Support",
-    ecoInsights: "Eco Insights"
+    ecoInsights: "Eco Insights",
+    tacticalAnalysis: "Tactical Analysis",
+    riskScore: "Risk Score",
+    level: "Level",
+    aiStrategy: "AI Strategy"
   },
   fr: {
     dashboard: "Tableau de Bord",
@@ -370,7 +374,11 @@ export const translations: Record<Language, any> = {
     implementEmergencyProtocols: "Protocoles d'urgence chaleur",
     stableStatus: "Statut Stable",
     requestCanopySupport: "Demander Support Canopée",
-    ecoInsights: "Analyses Éco"
+    ecoInsights: "Analyses Éco",
+    tacticalAnalysis: "Analyse Tactique",
+    riskScore: "Score de Risque",
+    level: "Niveau",
+    aiStrategy: "Stratégie IA"
   },
   ar: {
     dashboard: "لوحة القيادة",
@@ -557,7 +565,11 @@ export const translations: Record<Language, any> = {
     implementEmergencyProtocols: "تنفيذ بروتوكولات طوارئ الحرارة",
     stableStatus: "حالة مستقرة",
     requestCanopySupport: "طلب دعم المظلة",
-    ecoInsights: "رؤى بيئية"
+    ecoInsights: "رؤى بيئية",
+    tacticalAnalysis: "التحليل التكتيكي",
+    riskScore: "درجة المخاطر",
+    level: "المستوى",
+    aiStrategy: "استراتيجية الذكاء الاصطناعي"
   },
   es: {
     dashboard: "Panel de Control",
@@ -744,6 +756,10 @@ export const translations: Record<Language, any> = {
     implementEmergencyProtocols: "Protocolos de emergencia por calor",
     stableStatus: "Estado Estable",
     requestCanopySupport: "Solicitar Apoyo de Dosel",
-    ecoInsights: "Perspectivas Eco"
+    ecoInsights: "Perspectivas Eco",
+    tacticalAnalysis: "Análisis Táctico",
+    riskScore: "Puntaje de Riesgo",
+    level: "Nivel",
+    aiStrategy: "Estrategia IA"
   }
 };

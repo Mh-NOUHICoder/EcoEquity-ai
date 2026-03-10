@@ -7,6 +7,26 @@ export const metadata: Metadata = {
   title: "EcoEquity AI — Urban Heat Island Intelligence",
   description:
     "AI-powered urban heat island visualization for climate equity in European cities",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "EcoEquity AI",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/ecoequity-ai.png",
+  },
+};
+
+export const viewport = {
+  themeColor: "#10b981",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({

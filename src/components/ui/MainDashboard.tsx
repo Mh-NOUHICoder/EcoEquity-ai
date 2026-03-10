@@ -46,7 +46,8 @@ const SentinelMap = dynamic(() => import("@/components/maps/SentinelMap"), {
 export default function MainDashboard() {
   const { state, dispatch } = useApp();
   const { activeView, language } = state;
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === 'ar';
 
   // 1. Global Geolocation Sync
   useEffect(() => {
@@ -127,7 +128,7 @@ export default function MainDashboard() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
                 transition={{ duration: 0.3 }}
-                className="w-full lg:w-96 shrink-0 border-t lg:border-t-0 lg:border-l border-white/[0.06] overflow-hidden glass max-h-[50vh] lg:max-h-none"
+                className="w-full lg:w-96 shrink-0 border-t lg:border-t-0 lg:border-s border-white/[0.06] overflow-hidden glass max-h-[50vh] lg:max-h-none"
               >
                 {isAI ? <AIInsightsPanel /> : <CommunityFeed />}
               </motion.div>
@@ -146,7 +147,7 @@ export default function MainDashboard() {
               <div className="flex-1 overflow-y-auto custom-scrollbar">
                 <DashboardView />
               </div>
-              <div className="hidden xl:block w-96 shrink-0 border-l border-white/[0.06] overflow-hidden glass">
+              <div className="hidden xl:block w-96 shrink-0 border-s border-white/[0.06] overflow-hidden glass">
                 <CommunityFeed />
               </div>
             </motion.div>

@@ -250,7 +250,8 @@ const MapFocusHandler = () => {
 // --- Floating Analysis HUD ---
 const FloatingAnalysisPanel = () => {
     const { state, dispatch } = useApp();
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
+    const isRTL = typeof i18n.dir === 'function' ? i18n.dir() === 'rtl' : i18n.language === 'ar';
     const [isCollapsed, setIsCollapsed] = useState(false);
 
     if (!state.selectedFeature) return null;
@@ -268,9 +269,9 @@ const FloatingAnalysisPanel = () => {
 
     return (
         <motion.div 
-            initial={{ x: -100, opacity: 0 }}
+            initial={{ x: isRTL ? 100 : -100, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
-            className={`absolute top-40 left-10 z-[1000] ${isCollapsed ? 'w-16' : 'w-80'} transition-all duration-500 pointer-events-auto hidden lg:block`}
+            className={`absolute ${isRTL ? 'bottom-32 left-10' : 'top-44 left-10'} z-[1200] ${isCollapsed ? 'w-16' : 'w-80'} transition-all duration-500 pointer-events-auto hidden lg:block`}
         >
             <div className={`${HUD_GLASS} rounded-[2.5rem] border-cyan-500/30 shadow-[0_40px_100px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col backdrop-blur-3xl`}>
                 <div className="p-4 flex items-center justify-between border-b border-white/10 bg-white/5">
@@ -290,37 +291,50 @@ const FloatingAnalysisPanel = () => {
 
                 {!isCollapsed && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-6 space-y-6">
-                        <div className="space-y-1">
-                            <h3 className="text-xl font-black text-white uppercase tracking-tight truncate">{feature.properties.name}</h3>
-                            <div className="flex items-center gap-2">
-                                <MapPin size={10} className="text-cyan-400" />
-                                <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em]">{feature.properties.district}</span>
+                        <div className="flex items-start justify-between gap-4">
+                            <div className="space-y-1 flex-1">
+                                <h3 className="text-xl font-black text-white uppercase tracking-tight truncate">{feature.properties.name}</h3>
+                                <div className="flex items-center gap-2">
+                                    <MapPin size={10} className="text-cyan-400" />
+                                    <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em]">{feature.properties.district}</span>
+                                </div>
+                            </div>
+                            {/* Tactical Visualizer (Replacing missing image) */}
+                            <div className="relative w-14 h-14 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-emerald-500/5 group/viz">
+                                <motion.div 
+                                    animate={{ y: ["0%", "100%", "0%"] }}
+                                    transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                                    className="absolute top-0 left-0 w-full h-0.5 bg-emerald-400 shadow-[0_0_8px_#10b981] z-10"
+                                />
+                                <div className="absolute inset-0 flex items-center justify-center opacity-20">
+                                    <Satellite size={24} className="text-emerald-400" />
+                                </div>
                             </div>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <div className="bg-white/5 border border-white/10 p-4 rounded-3xl relative overflow-hidden group/s">
-                                <div className="text-[8px] font-black text-white/30 uppercase tracking-widest mb-1">Risk Score</div>
+                                <div className="text-[8px] font-black text-white/30 uppercase tracking-widest mb-1">{t('riskScore') || "Risk Score"}</div>
                                 <div className="text-2xl font-mono font-black text-white">{score}<span className="text-[10px] opacity-20 ml-1">/100</span></div>
                             </div>
                             <div className="bg-white/5 border border-white/10 p-4 rounded-3xl group/l">
-                                <div className="text-[8px] font-black text-white/30 uppercase tracking-widest mb-1">Level</div>
-                                <div className={`text-[10px] font-black uppercase tracking-widest ${level === 'High' ? 'text-red-400' : 'text-amber-400'}`}>
-                                    {level}
+                                <div className="text-[8px] font-black text-white/30 uppercase tracking-widest mb-1">{t('level') || "Level"}</div>
+                                <div className={`text-[10px] font-black uppercase tracking-widest ${level.includes('High') ? 'text-red-400' : level.includes('Medium') ? 'text-amber-400' : 'text-emerald-400'}`}>
+                                    {level.includes('High') ? t('highRisk') : level.includes('Medium') ? t('mediumRisk') : t('lowRisk')}
                                 </div>
                             </div>
                         </div>
-                        <div className="space-y-3">
+                        <div className="space-y-5 pt-4">
                              <div className="flex items-center gap-2 mb-1">
                                 <Sparkles size={12} className="text-emerald-400" />
-                                <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">AI Strategy</span>
+                                <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">{t('aiStrategy') || "AI Strategy"}</span>
                             </div>
-                            <div className="space-y-2">
+                            <div className="space-y-3">
                                 {[
                                     { text: t('increaseTreeCoverage') || "Tree Canopy+", icon: <TreePine size={12} />, prob: "92%" },
                                     { text: t('addShadedAreas') || "Shade Structures", icon: <Maximize2 size={12} />, prob: "85%" },
                                     { text: t('deployCoolingStations') || "Cooling HUBs", icon: <Droplets size={12} />, prob: "94%" }
                                 ].map((item, i) => (
-                                    <div key={i} className="flex items-center gap-3 p-3 bg-white/[0.02] border border-white/5 rounded-2xl">
+                                    <div key={i} className="flex items-center gap-3 p-3 bg-white/[0.04] border border-white/10 rounded-2xl hover:bg-white/10 transition-colors shadow-lg shadow-black/20 relative z-10">
                                         <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
                                             {item.icon}
                                         </div>
@@ -451,7 +465,9 @@ const SentinelMap: React.FC = () => {
   return (
     <div className="relative w-full h-[700px] lg:h-[850px] rounded-[3rem] lg:rounded-[5rem] overflow-hidden border border-white/20 shadow-[0_60px_120px_rgba(0,0,0,1)] bg-black">
       
-      <FloatingAnalysisPanel />
+      <div className="absolute inset-x-0 top-0 pointer-events-none z-[1200]">
+        <FloatingAnalysisPanel key={state.selectedFeature?.properties.name || 'none'} />
+      </div>
 
       <MapContainer center={[20, 0]} zoom={3} zoomControl={false} style={{ height: "100%", width: "100%" }} className="bg-[#05080D] h-full w-full">
         <MapResizer />
@@ -473,18 +489,35 @@ const SentinelMap: React.FC = () => {
               <GlobalGrid onCellHover={setHoveredCell} />
             )}
             
-            <GeoJSON 
-              data={NDVI_GEOJSON as any} 
-              style={(feature) => {
-                const isSelected = state.selectedFeature?.properties.name === feature?.properties.name;
-                return {
-                  fillColor: getColor(feature?.properties.ndvi),
-                  weight: isSelected ? 3 : 1.5,
-                  opacity: isSelected ? 0.8 : 0.6,
-                  color: isSelected ? '#10b981' : 'white',
-                  fillOpacity: isSelected ? 0.6 : (state.heatRiskMode ? 0.7 : 0.4),
-                };
-              }}
+              <GeoJSON 
+                data={NDVI_GEOJSON as any} 
+                pointToLayer={(feature, latlng) => {
+                  const isSelected = state.selectedFeature?.properties.name === feature.properties.name;
+                  const color = getColor(feature.properties.ndvi);
+                  return L.marker(latlng, {
+                    icon: L.divIcon({
+                      className: 'tactical-sector-icon',
+                      html: `
+                        <div class="relative flex items-center justify-center transition-all duration-500 scale-${isSelected ? '125' : '100'}">
+                          <div class="absolute w-8 h-8 rounded-full bg-emerald-500/10 animate-pulse"></div>
+                          <div class="absolute w-3 h-3 rounded-full border border-white/50 shadow-[0_0_10px_${color}88]" style="background-color: ${color};"></div>
+                          ${isSelected ? `<div class="absolute -inset-1 border border-emerald-400/50 rounded-full animate-ping"></div>` : ''}
+                        </div>
+                      `,
+                      iconSize: [32, 32], iconAnchor: [16, 16]
+                    })
+                  });
+                }}
+                style={(feature) => {
+                  const isSelected = state.selectedFeature?.properties.name === feature?.properties.name;
+                  return {
+                    fillColor: getColor(feature?.properties.ndvi),
+                    weight: isSelected ? 3 : 1.5,
+                    opacity: isSelected ? 0.8 : 0.6,
+                    color: isSelected ? '#10b981' : 'white',
+                    fillOpacity: isSelected ? 0.6 : (state.heatRiskMode ? 0.7 : 0.4),
+                  };
+                }}
               onEachFeature={(feature, layer) => {
                 layer.on({
                   click: (e) => {
@@ -546,35 +579,7 @@ const SentinelMap: React.FC = () => {
                <MapSearch />
             </div>
             
-            {/* Unified Toggle Unit */}
-            <div className={`${HUD_GLASS} px-2 py-2 rounded-3xl border-emerald-500/20 flex items-center gap-1 shadow-2xl pointer-events-auto shrink-0`}>
-              <button
-                onClick={() => dispatch({ type: "TOGGLE_HEAT_RISK" })}
-                className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${!state.heatRiskMode ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}`}
-              >
-                {isMobile ? "Grid" : t('theme_terrain') || "Tactical Grid"}
-              </button>
-              
-              <div className="w-[1px] h-4 bg-white/10" />
-              
-              <button
-                onClick={() => dispatch({ type: "TOGGLE_HEAT_RISK" })}
-                className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${state.heatRiskMode ? 'bg-emerald-500/10 text-emerald-400' : 'text-white/40 hover:text-white/60'}`}
-              >
-                <Zap size={12} className={state.heatRiskMode ? 'fill-emerald-400' : ''} />
-                {isMobile ? "Risk" : t('heatRisk') || "Heat Risk"}
-              </button>
-
-              <div className="w-[1px] h-4 bg-white/10" />
-
-              <button
-                onClick={() => setShowReports(!showReports)}
-                className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${showReports ? 'bg-cyan-500/10 text-cyan-400' : 'text-white/40 hover:text-white/60'}`}
-              >
-                <Users size={12} className={showReports ? 'fill-cyan-400' : ''} />
-                {isMobile ? "Reports" : "Community Reports"}
-              </button>
-            </div>
+            {/* The Search Bar takes the full width available now */}
           </motion.div>
       </div>
 
@@ -749,17 +754,7 @@ const SentinelMap: React.FC = () => {
                         </div>
                    </div>
                 </motion.div>
-             ) : (
-                <div className="flex flex-col gap-3">
-                   <button 
-                      onClick={() => setActiveMobileCard(activeMobileCard === 'telemetry' ? null : 'telemetry')}
-                      className={`${HUD_GLASS} w-16 h-16 rounded-3xl flex flex-col items-center justify-center gap-1.5 border-cyan-500/20 active:scale-90 transition-all ${activeMobileCard === 'telemetry' ? 'bg-cyan-500/20 border-cyan-500/40 shadow-[0_0_25px_rgba(34,211,238,0.4)]' : ''}`}
-                   >
-                      <Target size={20} className={activeMobileCard === 'telemetry' ? 'text-cyan-400' : 'text-white/30'} />
-                      <span className="text-[7px] font-black text-white/50 uppercase tracking-tighter">{t('targetLockCoords').split(' ')[0]}</span>
-                   </button>
-                </div>
-             )}
+             ) : null}
 
              {/* Desktop-only Theme Switcher (already handled for mobile in header) */}
              {!isMobile && (
