@@ -22,7 +22,8 @@ import {
   X,
   Maximize2,
   Minimize2,
-  Search
+  Search,
+  Satellite
 } from "lucide-react";
 import { calculateHeatRisk } from "@/utils/calculateHeatRisk";
 import { useApp } from "@/context/AppContext";
