@@ -8,7 +8,7 @@ import L from "leaflet";
 import { motion, AnimatePresence, animate, useMotionValue, useTransform } from "framer-motion";
 import { 
   Shield, Satellite, Calendar, Cloud, BarChart3, Activity, Globe, Loader2, AlertCircle,
-  Crosshair, Cpu, Monitor, Zap, Command, Target, MapPin, Sparkles, TreePine, Maximize2, Droplets, X
+  Crosshair, Cpu, Monitor, Zap, Command, Target, MapPin, Sparkles, TreePine, Maximize2, Droplets, X, Users
 } from "lucide-react";
 import { MAP_THEMES } from "@/lib/mapThemes";
 import { useApp } from "@/context/AppContext";
@@ -405,9 +405,14 @@ const SentinelMap: React.FC = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [locationLoaded, setLocationLoaded] = useState(false);
   const [activeMobileCard, setActiveMobileCard] = useState<string | null>(null);
+  const [showReports, setShowReports] = useState(true);
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    const handleResize = () => {
+        const mobile = window.innerWidth < 1024;
+        setIsMobile(mobile);
+        if (mobile) setShowReports(false); // Default OFF on mobile
+    };
     handleResize();
     window.addEventListener("resize", handleResize);
     window.addEventListener("mousemove", (e) => setMousePos({ x: e.clientX, y: e.clientY }));
@@ -521,7 +526,7 @@ const SentinelMap: React.FC = () => {
             <MapMoveHandler onMove={setCurrentCenter} />
             <MapInitialFocus center={currentCenter} />
             <MapFocusHandler />
-            <ReportMarkers />
+            {showReports && <ReportMarkers />}
 
             {/* Neural pulse markers removed for a clean, telemetry-focused map view. Recommendations are available in the AI Insights Panel. */}
           </>
@@ -549,13 +554,25 @@ const SentinelMap: React.FC = () => {
               >
                 {isMobile ? "Grid" : t('theme_terrain') || "Tactical Grid"}
               </button>
+              
               <div className="w-[1px] h-4 bg-white/10" />
+              
               <button
                 onClick={() => dispatch({ type: "TOGGLE_HEAT_RISK" })}
-                className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${state.heatRiskMode ? 'bg-emerald-500/20 text-emerald-400' : 'text-white/40 hover:text-white/60'}`}
+                className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${state.heatRiskMode ? 'bg-emerald-500/10 text-emerald-400' : 'text-white/40 hover:text-white/60'}`}
               >
                 <Zap size={12} className={state.heatRiskMode ? 'fill-emerald-400' : ''} />
                 {isMobile ? "Risk" : t('heatRisk') || "Heat Risk"}
+              </button>
+
+              <div className="w-[1px] h-4 bg-white/10" />
+
+              <button
+                onClick={() => setShowReports(!showReports)}
+                className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${showReports ? 'bg-cyan-500/10 text-cyan-400' : 'text-white/40 hover:text-white/60'}`}
+              >
+                <Users size={12} className={showReports ? 'fill-cyan-400' : ''} />
+                {isMobile ? "Reports" : "Community Reports"}
               </button>
             </div>
           </motion.div>

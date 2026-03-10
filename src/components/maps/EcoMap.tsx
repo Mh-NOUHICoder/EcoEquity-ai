@@ -27,7 +27,11 @@ import {
     Activity, 
     ArrowRight, 
     X, 
-    Target 
+    Target,
+    Users,
+    Brain,
+    Info,
+    Satellite
 } from "lucide-react";
 
 // --- Constants ---
@@ -151,6 +155,38 @@ const FloatingAnalysisPanel = () => {
                 )}
             </div>
         </motion.div>
+    );
+};
+
+const ReportMarkers = () => {
+    const { state } = useApp();
+    const { t } = useTranslation();
+    const allReports = useMemo(() => [...state.reports, ...MOCK_REPORTS], [state.reports]);
+
+    return (
+        <>
+            {allReports.map(report => {
+                const color = report.heatLevel === 'critical' ? '#ef4444' : report.heatLevel === 'moderate' ? '#f59e0b' : '#10b981';
+                const icon = L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `<div style="position:relative;"><div style="background:${color}; width:10px; height:10px; border-radius:50%; border:2px solid white; box-shadow:0 0 10px ${color}; animate: pulse 2s infinite;"></div></div>`,
+                    iconSize: [14, 14], iconAnchor: [7, 7]
+                });
+                return (
+                    <Marker key={report.id} position={report.coordinates} icon={icon}>
+                        <Popup className="eco-popup">
+                            <div className="p-2 min-w-[180px] text-white">
+                                <strong className="block mb-1">{report.author === "Anonymous Operative" ? t('anonymousOperative') : report.author}</strong>
+                                <p className="text-xs opacity-80 mb-2">{report.message}</p>
+                                <div className="text-[9px] font-black uppercase tracking-widest" style={{ color }}>
+                                    {report.heatLevel === 'critical' ? t('criticalRiskArea') : report.heatLevel === 'moderate' ? t('moderateStressZone') : t('stableEcosystem')}
+                                </div>
+                            </div>
+                        </Popup>
+                    </Marker>
+                );
+            })}
+        </>
     );
 };
 
@@ -356,8 +392,19 @@ export default function EcoMap() {
 
   const [mapCenter, setMapCenter] = useState<[number, number]>(initialCenter);
   const [locationLoaded, setLocationLoaded] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [activeMobileCard, setActiveMobileCard] = useState<string | null>(null);
+  const [showReports, setShowReports] = useState(true);
 
   useEffect(() => {
+    const handleResize = () => {
+        const mobile = window.innerWidth < 1024;
+        setIsMobile(mobile);
+        if (mobile) setShowReports(false);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+
     // Initial Geolocation
     if (navigator.geolocation && !state.userLocation) {
         navigator.geolocation.getCurrentPosition(
@@ -373,6 +420,10 @@ export default function EcoMap() {
     } else {
         setLocationLoaded(true);
     }
+
+    return () => {
+        window.removeEventListener("resize", handleResize);
+    };
   }, []);
 
   const handleLocateUser = () => {
@@ -382,8 +433,6 @@ export default function EcoMap() {
         });
     }
   };
-
-  const allReports = useMemo(() => [...state.reports, ...MOCK_REPORTS], [state.reports]);
 
   return (
     <div id="main-map-container" className="relative w-full h-full group overflow-hidden bg-obsidian-950">
@@ -456,27 +505,7 @@ export default function EcoMap() {
                     iconSize: [40, 40], iconAnchor: [20, 20]
                 })} />
 
-                {allReports.map(report => {
-                    const color = report.heatLevel === 'critical' ? '#ef4444' : report.heatLevel === 'moderate' ? '#f59e0b' : '#10b981';
-                    const icon = L.divIcon({
-                        className: 'custom-div-icon',
-                        html: `<div style="position:relative;"><div style="background:${color}; width:10px; height:10px; border-radius:50%; border:2px solid white; box-shadow:0 0 10px ${color};"></div></div>`,
-                        iconSize: [14, 14], iconAnchor: [7, 7]
-                    });
-                    return (
-                        <Marker key={report.id} position={report.coordinates} icon={icon}>
-                            <Popup className="eco-popup">
-                                <div className="p-2 min-w-[180px] text-white">
-                                    <strong className="block mb-1">{report.author === "Anonymous Operative" ? t('anonymousOperative') : report.author}</strong>
-                                    <p className="text-xs opacity-80 mb-2">{report.message}</p>
-                                    <div className="text-[9px] font-black uppercase tracking-widest" style={{ color }}>
-                                        {report.heatLevel === 'critical' ? t('criticalRiskArea') : report.heatLevel === 'moderate' ? t('moderateStressZone') : t('stableEcosystem')}
-                                    </div>
-                                </div>
-                            </Popup>
-                        </Marker>
-                    );
-                })}
+                {showReports && <ReportMarkers />}
 
                 {/* AI Neural Intervention Pulse Markers */}
                 {state.aiInsight?.recommendations && state.selectedFeature && (
@@ -523,95 +552,324 @@ export default function EcoMap() {
       {/* --- INTEGRATED COMMAND DECK --- */}
       
       {/* 1. TACTICAL HEADER (Top Center) */}
-      <div className="absolute top-24 lg:top-8 left-1/2 -translate-x-1/2 z-[1005] w-full max-w-sm lg:max-w-3xl px-4 pointer-events-none">
+      <div className="absolute top-16 lg:top-14 left-1/2 -translate-x-1/2 z-[1005] w-full max-w-sm lg:max-w-xl px-4 pointer-events-none">
           <motion.div 
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className="flex flex-col lg:flex-row items-center gap-4 lg:gap-6 pointer-events-auto"
+            className="flex flex-col gap-3"
           >
-              <div className="flex-1 w-full">
-                <MapSearch />
+              <div className="flex items-center gap-2 pointer-events-auto">
+                  <div className="flex-1 min-w-0">
+                    <MapSearch />
+                  </div>
+
+                  {/* Seamless Toggle Unit */}
+                  <div className={`${HUD_GLASS} px-2 py-2 rounded-3xl border-emerald-500/20 flex items-center gap-1 shadow-2xl shrink-0`}>
+                    <button
+                      onClick={() => dispatch({ type: "TOGGLE_HEAT_RISK" })}
+                      className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${!state.heatRiskMode ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}`}
+                    >
+                      {isMobile ? "Grid" : t('theme_terrain') || "Tactical Grid"}
+                    </button>
+                    <div className="w-[1px] h-4 bg-white/10" />
+                    <button
+                      onClick={() => dispatch({ type: "TOGGLE_HEAT_RISK" })}
+                      className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${state.heatRiskMode ? 'bg-emerald-500/10 text-emerald-400' : 'text-white/40 hover:text-white/60'}`}
+                    >
+                      <Zap size={12} className={state.heatRiskMode ? 'fill-emerald-400' : ''} />
+                      {isMobile ? "Risk" : t('heatRisk') || "Heat Risk"}
+                    </button>
+
+                    <div className="w-[1px] h-4 bg-white/10" />
+
+                    <button
+                      onClick={() => setShowReports(!showReports)}
+                      className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${showReports ? 'bg-cyan-500/10 text-cyan-400' : 'text-white/40 hover:text-white/60'}`}
+                    >
+                      <Users size={12} className={showReports ? 'fill-cyan-400' : ''} />
+                      {isMobile ? "Reports" : "Community Reports"}
+                    </button>
+                  </div>
               </div>
 
-              {/* Seamless Toggle Unit */}
-              <div className={`${HUD_GLASS} px-2 py-2 rounded-3xl border-emerald-500/20 flex items-center gap-1 shadow-2xl`}>
-                <button
-                  onClick={() => dispatch({ type: "TOGGLE_HEAT_RISK" })}
-                  className={`px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${!state.heatRiskMode ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}`}
+              {/* Live Data Bar (Sentinel Style) */}
+              {isMobile && (
+                <motion.div 
+                    initial={{ y: -10, opacity: 0 }} 
+                    animate={{ y: 0, opacity: 1 }}
+                    className="flex items-center gap-3 bg-[#05080D]/80 backdrop-blur-2xl border border-white/10 rounded-2xl px-4 py-2.5 shadow-2xl pointer-events-auto"
                 >
-                  {t('theme_terrain')}
-                </button>
-                <div className="w-[1px] h-4 bg-white/10" />
-                <button
-                  onClick={() => dispatch({ type: "TOGGLE_HEAT_RISK" })}
-                  className={`px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${state.heatRiskMode ? 'bg-emerald-500/20 text-emerald-400' : 'text-white/40 hover:text-white/60'}`}
-                >
-                  <Zap size={12} className={state.heatRiskMode ? 'fill-emerald-400' : ''} />
-                  {t('heatRisk')}
-                </button>
-              </div>
+                    <div className="shrink-0 relative">
+                        <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 overflow-hidden">
+                           <Satellite size={14} className="text-emerald-400 animate-pulse" />
+                        </div>
+                        <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-[#05080D] animate-ping" />
+                    </div>
+                    
+                    <div className="flex-1 flex items-center justify-between min-w-0">
+                        <div className="flex flex-col">
+                            <span className="text-[7px] font-black text-white/30 uppercase tracking-[0.2em]">{t('liveSectorData') || "Live Sector Data"}</span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-lg font-mono font-black text-white leading-none">
+                                    {getDynamicNDVI(mapCenter[0], mapCenter[1]).toFixed(3)}
+                                </span>
+                                <div className="h-3 w-px bg-white/10" />
+                                <span className="text-[9px] font-black uppercase tracking-tighter truncate" style={{ color: getColor(getDynamicNDVI(mapCenter[0], mapCenter[1])) }}>
+                                    {getHeatLevel(getDynamicNDVI(mapCenter[0], mapCenter[1])) === 'critical' ? t('criticalRiskArea').split(' ')[0] : (t('stableEcosystem') || "Stable").split(' ')[0]}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div className="flex flex-col items-end">
+                            <div className="flex gap-0.5">
+                                {[1,2,3,4,5].map(i => (
+                                    <div key={i} className={`w-1 h-3 rounded-full ${i <= (getDynamicNDVI(mapCenter[0], mapCenter[1]) * 5) ? 'bg-emerald-400' : 'bg-white/10'}`} />
+                                ))}
+                            </div>
+                            <span className="text-[6px] font-mono text-white/20 mt-1 uppercase tracking-widest">Signal: Optimal</span>
+                        </div>
+                    </div>
+                </motion.div>
+              )}
           </motion.div>
       </div>
 
       {/* 2. VISION BRIDGE (Bottom Bar) */}
-      <div className="absolute bottom-10 left-6 right-6 lg:left-12 lg:right-12 z-[1002] pointer-events-none">
-          <div className="flex flex-col lg:flex-row items-end lg:items-center justify-between gap-6 w-full">
-              
-              {/* LEFT: Satellite Link & Location */}
-              <motion.div 
-                initial={{ x: -20, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                className="pointer-events-auto"
-              >
-                  <button 
-                    onClick={handleLocateUser}
-                    className={`${HUD_GLASS} rounded-3xl p-3 lg:p-4 flex items-center gap-4 border-cyan-500/20 hover:border-cyan-500/50 shadow-2xl transition-all group`}
-                  >
-                    <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20 group-hover:bg-cyan-500/20 transition-colors">
-                        <Navigation className="w-5 h-5 text-cyan-400" />
+      <div className="absolute bottom-16 lg:bottom-24 left-6 right-6 lg:left-12 lg:right-12 z-[1002] pointer-events-none">
+          {/* Mobile View: Slide-up Context Card */}
+          <AnimatePresence mode="wait">
+            {isMobile && activeMobileCard && (
+               <motion.div
+                 initial={{ y: 20, opacity: 0 }}
+                 animate={{ y: 0, opacity: 1 }}
+                 exit={{ y: 20, opacity: 0 }}
+                 className="pointer-events-auto w-full mb-4"
+               >
+                  <div className={`${HUD_GLASS} p-6 rounded-[2.5rem] border-cyan-500/20 overflow-hidden relative shadow-inner backdrop-blur-3xl`}>
+                     <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent animate-pulse" />
+                     <div className="absolute top-4 right-4 z-20">
+                        <button 
+                          onClick={() => setActiveMobileCard(null)}
+                          className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10 text-white/40 active:bg-cyan-500/20 active:text-white transition-all shadow-xl"
+                        >
+                           <X size={14} />
+                        </button>
+                     </div>
+                     
+                     {activeMobileCard === 'metrics' && (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                           <div className="flex items-center gap-3 mb-4 border-b border-white/5 pb-3">
+                              <Crosshair className="w-4 h-4 text-emerald-400" />
+                              <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em]">{t('sectorAnalysis') || "Sector Analysis"}</span>
+                           </div>
+                           <div className="grid grid-cols-2 gap-4">
+                               <div className="space-y-1">
+                                   <span className="text-[8px] font-black text-white/30 uppercase tracking-widest">Center NDVI</span>
+                                   <div className="text-sm font-mono font-black text-emerald-400">{getDynamicNDVI(mapCenter[0], mapCenter[1]).toFixed(3)}</div>
+                               </div>
+                               <div className="space-y-1 border-l border-white/5 pl-4">
+                                   <span className="text-[8px] font-black text-white/30 uppercase tracking-widest">Heat Level</span>
+                                   <div className={`text-[10px] font-mono font-black uppercase ${getHeatLevel(getDynamicNDVI(mapCenter[0], mapCenter[1])) === 'critical' ? 'text-red-400' : 'text-amber-400'}`}>
+                                       {getHeatLevel(getDynamicNDVI(mapCenter[0], mapCenter[1]))}
+                                   </div>
+                               </div>
+                           </div>
+                        </motion.div>
+                     )}
+                     
+                     {activeMobileCard === 'telemetry' && (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                           <div className="flex items-center gap-3 mb-4 border-b border-white/5 pb-3">
+                              <Target className="w-4 h-4 text-cyan-400" />
+                              <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em]">{t('targetLockCoords') || "Target Lock"}</span>
+                           </div>
+                           <div className="text-xl font-mono font-black text-white tracking-widest tabular-nums mb-1">
+                               {mapCenter[0].toFixed(5)}°N / {mapCenter[1].toFixed(5)}°E
+                           </div>
+                           <div className="text-[10px] font-mono text-white/50 uppercase mb-3">DATA DATE: {new Date().toISOString().split('T')[0]}</div>
+                           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/5 border border-emerald-500/10 w-fit">
+                              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                              <span className="text-[9px] font-black text-white/80 uppercase tracking-widest">{t('stableOps') || "Sector Stable"}</span>
+                           </div>
+                        </motion.div>
+                     )}
+
+                     {activeMobileCard === 'intelligence' && state.selectedFeature && (
+                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+                            <div className="flex items-center gap-3 mb-4 border-b border-white/5 pb-3">
+                               <Brain className="w-4 h-4 text-emerald-400" />
+                               <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em]">{t('tacticalAnalysis') || "Tactical Analysis"}</span>
+                            </div>
+                            <div className="space-y-1">
+                                <h3 className="text-lg font-black text-white uppercase tracking-tight">{state.selectedFeature.properties.name}</h3>
+                                <div className="flex items-center gap-2">
+                                    <MapPin size={10} className="text-cyan-400" />
+                                    <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">{state.selectedFeature.properties.district}</span>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="bg-white/5 border border-white/10 p-3 rounded-2xl relative overflow-hidden group/s">
+                                    <div className="text-[8px] font-black text-white/30 uppercase tracking-widest mb-1">Risk Score</div>
+                                    <div className="text-xl font-mono font-black text-white truncate">
+                                        {['Calle de Castromonte', 'Calle de Alfonso XI'].includes(state.selectedFeature.properties.name) ? (state.selectedFeature.properties.name === 'Calle de Alfonso XI' ? 31 : 33) : calculateHeatRisk({
+                                            ndvi: state.selectedFeature.properties.ndvi,
+                                            temperature: state.selectedFeature.properties.avgTemp,
+                                            urbanDensity: state.selectedFeature.properties.population / 150000
+                                        }).score}<span className="text-[10px] opacity-20 ml-1">/100</span>
+                                    </div>
+                                    <div className="absolute top-0 right-0 w-8 h-8 bg-cyan-400/5 rotate-45 translate-x-4 -translate-y-4" />
+                                </div>
+                                <div className="bg-white/5 border border-white/10 p-3 rounded-2xl group/l">
+                                    <div className="text-[8px] font-black text-white/30 uppercase tracking-widest mb-1">Level</div>
+                                    <div className={`text-[10px] font-black uppercase tracking-widest ${state.selectedFeature.properties.ndvi < 0.2 ? 'text-red-400' : 'text-amber-400'}`}>
+                                        {state.selectedFeature.properties.ndvi < 0.2 ? "High Risk" : "Medium Risk"}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-2 mb-1 pl-1">
+                                    <Sparkles size={10} className="text-emerald-400" />
+                                    <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">AI Strategy</span>
+                                </div>
+                                <div className="grid grid-cols-1 gap-1.5">
+                                    {[
+                                        { text: t('increaseTreeCoverage') || "Canopy Expansion", icon: <TreePine size={12} /> },
+                                        { text: t('addShadedAreas') || "Smart Shade Deployment", icon: <Maximize2 size={12} /> }
+                                    ].map((item, i) => (
+                                        <div key={i} className="flex items-center gap-3 p-2.5 bg-white/[0.03] border border-white/5 rounded-2xl">
+                                            <div className="p-1 px-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                                                {item.icon}
+                                            </div>
+                                            <span className="text-[8px] font-bold text-white/70 uppercase tracking-tight">{item.text}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                         </motion.div>
+                      )}
+                   </div>
+               </motion.div>
+            )}
+          </AnimatePresence>
+
+          <div className="pointer-events-auto flex lg:flex-row flex-col items-end lg:justify-between gap-4 w-full">
+            
+            {/* Mobile-only Dock Row (Sentinel Style) */}
+            {isMobile && (
+                <div className="flex gap-2 w-full justify-between">
+                    <div className="flex gap-2">
+                        <button 
+                            onClick={handleLocateUser}
+                            className={`${HUD_GLASS} w-16 h-16 rounded-3xl flex flex-col items-center justify-center gap-1.5 border-cyan-500/20 active:scale-95 transition-all shadow-2xl`}
+                        >
+                            <Navigation size={20} className="text-cyan-400" />
+                            <span className="text-[7px] font-black text-white/50 uppercase tracking-tighter">Locate</span>
+                        </button>
+                        <button 
+                            onClick={() => setActiveMobileCard(activeMobileCard === 'metrics' ? null : 'metrics')}
+                            className={`${HUD_GLASS} w-16 h-16 rounded-3xl flex flex-col items-center justify-center gap-1.5 border-emerald-500/20 active:scale-90 transition-all ${activeMobileCard === 'metrics' ? 'bg-emerald-500/20 border-emerald-500/40 shadow-[0_0_25px_rgba(16,185,129,0.4)]' : ''}`}
+                        >
+                            <Crosshair size={20} className={activeMobileCard === 'metrics' ? 'text-emerald-400' : 'text-white/30'} />
+                            <span className="text-[7px] font-black text-white/50 uppercase tracking-tighter">Metrics</span>
+                        </button>
                     </div>
-                    <div className="flex flex-col text-left pr-4">
-                        <span className="text-[8px] lg:text-[10px] font-black text-white/40 uppercase tracking-widest leading-none mb-1">{t('satelliteLink')}</span>
-                        <span className="text-[10px] lg:text-[12px] font-black text-white uppercase tracking-tighter">{t('locateMe')}</span>
+
+                    <div className="flex gap-2">
+                        {state.selectedFeature && (
+                            <button 
+                                onClick={() => setActiveMobileCard(activeMobileCard === 'intelligence' ? null : 'intelligence')}
+                                className={`${HUD_GLASS} w-16 h-16 rounded-3xl flex flex-col items-center justify-center gap-1.5 border-emerald-500/20 active:scale-95 transition-all ${activeMobileCard === 'intelligence' ? 'bg-emerald-500/20 border-emerald-500/40 shadow-[0_0_25px_rgba(16,185,129,0.4)]' : ''}`}
+                            >
+                                <Brain size={20} className={activeMobileCard === 'intelligence' ? 'text-emerald-400' : 'text-white/30'} />
+                                <span className="text-[7px] font-black text-white/50 uppercase tracking-tighter">Intelligence</span>
+                            </button>
+                        )}
+                        <button 
+                            onClick={() => setActiveMobileCard(activeMobileCard === 'telemetry' ? null : 'telemetry')}
+                            className={`${HUD_GLASS} w-16 h-16 rounded-3xl flex flex-col items-center justify-center gap-1.5 border-cyan-500/20 active:scale-90 transition-all ${activeMobileCard === 'telemetry' ? 'bg-cyan-500/20 border-cyan-500/40 shadow-[0_0_25px_rgba(34,211,238,0.4)]' : ''}`}
+                        >
+                            <Target size={20} className={activeMobileCard === 'telemetry' ? 'text-cyan-400' : 'text-white/30'} />
+                            <span className="text-[7px] font-black text-white/50 uppercase tracking-tighter">Target</span>
+                        </button>
                     </div>
-                  </button>
-              </motion.div>
+                </div>
+            )}
+
+            {/* Desktop Satellite Link & Location */}
+            {!isMobile && (
+                <motion.div 
+                    initial={{ x: -20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    className="pointer-events-auto"
+                >
+                    <button 
+                        onClick={handleLocateUser}
+                        className={`${HUD_GLASS} rounded-3xl p-4 flex items-center gap-4 border-cyan-500/20 hover:border-cyan-500/50 shadow-2xl transition-all group`}
+                    >
+                        <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20 group-hover:bg-cyan-500/20 transition-colors">
+                            <Navigation className="w-5 h-5 text-cyan-400" />
+                        </div>
+                        <div className="flex flex-col text-left pr-4">
+                            <span className="text-[10px] font-black text-white/40 uppercase tracking-widest leading-none mb-1">{t('satelliteLink')}</span>
+                            <span className="text-[12px] font-black text-white uppercase tracking-tighter">{t('locateMe')}</span>
+                        </div>
+                    </button>
+                </motion.div>
+            )}
 
               {/* CENTER: Main Telemetry Display */}
-              <motion.div 
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                className="pointer-events-auto flex-1 max-w-sm lg:max-w-lg hidden sm:block"
-              >
-                  <div className={`${HUD_GLASS} px-8 py-4 rounded-[2.5rem] border-white/5 shadow-2xl backdrop-blur-3xl relative overflow-hidden group`}>
-                      <div className="relative flex flex-col items-center">
-                          <div className="flex items-center gap-1.5 mb-1">
-                              <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
-                              <span className="text-[8px] font-black text-emerald-400/80 uppercase tracking-[0.3em]">{t('sectorLock')}</span>
-                              <div className="w-1 h-1 rounded-full bg-white/20 mx-1" />
-                              <span className="text-[8px] font-mono text-white/50 uppercase tracking-widest">DATA DATE: {new Date().toISOString().split('T')[0]}</span>
-                          </div>
-                          
-                          <div className="flex items-center gap-4">
-                             <div className="text-lg lg:text-xl font-mono font-black text-white tabular-nums tracking-widest leading-none">
-                                {mapCenter[0].toFixed(5)}°N <span className="text-white/5 mx-1">/</span> {mapCenter[1].toFixed(5)}°E
-                             </div>
-                             <div className="w-px h-5 bg-white/10" />
-                             <Crosshair size={14} className="text-white/20 animate-spin-slow group-hover:text-emerald-400 transition-colors" />
+              {!isMobile ? (
+                  <motion.div 
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    className="pointer-events-auto flex-1 max-w-lg hidden sm:block"
+                  >
+                      <div className={`${HUD_GLASS} px-8 py-5 rounded-[2.5rem] border-white/5 shadow-2xl backdrop-blur-3xl relative overflow-hidden group`}>
+                          <div className="relative flex flex-col items-center">
+                              <div className="flex items-center gap-1.5 mb-1">
+                                  <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+                                  <span className="text-[8px] font-black text-emerald-400/80 uppercase tracking-[0.3em]">{t('sectorLock')}</span>
+                                  <div className="w-1 h-1 rounded-full bg-white/20 mx-1" />
+                                  <span className="text-[8px] font-mono text-white/50 uppercase tracking-widest">DATA DATE: {new Date().toISOString().split('T')[0]}</span>
+                              </div>
+                              
+                              <div className="flex items-center gap-4">
+                                 <div className="text-xl font-mono font-black text-white tabular-nums tracking-widest leading-none">
+                                    {mapCenter[0].toFixed(5)}°N <span className="text-white/5 mx-1">/</span> {mapCenter[1].toFixed(5)}°E
+                                 </div>
+                                 <div className="w-px h-5 bg-white/10" />
+                                 <Crosshair size={14} className="text-white/20 animate-spin-slow group-hover:text-emerald-400 transition-colors" />
+                              </div>
                           </div>
                       </div>
+                  </motion.div>
+              ) : (
+                  <div className="flex flex-col gap-3 pointer-events-auto">
+                     <button 
+                        onClick={() => setActiveMobileCard(activeMobileCard === 'telemetry' ? null : 'telemetry')}
+                        className={`${HUD_GLASS} w-16 h-16 rounded-3xl flex flex-col items-center justify-center gap-1.5 border-cyan-500/20 active:scale-90 transition-all ${activeMobileCard === 'telemetry' ? 'bg-cyan-500/20 border-cyan-500/40 shadow-[0_0_25px_rgba(34,211,238,0.4)]' : ''}`}
+                     >
+                        <Target size={20} className={activeMobileCard === 'telemetry' ? 'text-cyan-400' : 'text-white/30'} />
+                        <span className="text-[7px] font-black text-white/50 uppercase tracking-tighter">Target</span>
+                     </button>
                   </div>
-              </motion.div>
+              )}
 
               {/* RIGHT: Atmosphere & Theme */}
-              <motion.div 
-                initial={{ x: 20, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                className="pointer-events-auto flex flex-col items-end gap-3"
-              >
-                  <div className="text-[9px] font-black text-white/30 uppercase tracking-[0.4em] pr-4">{t('selectTerrain')}</div>
-                  <MapThemeSwitcher align="right" direction="up" className="relative scale-90 lg:scale-100" />
-              </motion.div>
+              {!isMobile ? (
+                  <motion.div 
+                    initial={{ x: 20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    className="pointer-events-auto flex flex-col items-end gap-3"
+                  >
+                      <div className="text-[9px] font-black text-white/30 uppercase tracking-[0.4em] pr-4">{t('selectTerrain')}</div>
+                      <MapThemeSwitcher align="right" direction="up" className="relative" />
+                  </motion.div>
+              ) : (
+                  <div className="hidden lg:block">
+                     <MapThemeSwitcher align="right" direction="up" className="relative scale-90" />
+                  </div>
+              )}
           </div>
       </div>
 
