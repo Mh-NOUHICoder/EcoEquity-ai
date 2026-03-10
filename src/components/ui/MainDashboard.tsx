@@ -12,6 +12,8 @@ import { useApp } from "@/context/AppContext";
 import { getTreeRequests } from "@/lib/supabase/supabase";
 import { CommunityReport } from "@/types";
 import { useTranslation } from "react-i18next";
+import React from "react";
+import EcoNeuralBackground from "@/components/ui/EcoNeuralBackground";
 
 // Map Loader Component for Translated Load states
 const MapLoader = ({ messageKey, color = "emerald" }: { messageKey: string; color?: "emerald" | "sky" }) => {
@@ -40,108 +42,6 @@ const SentinelMap = dynamic(() => import("@/components/maps/SentinelMap"), {
     loading: () => <MapLoader messageKey="loadingSentinelViewer" color="sky" />,
 });
 
-const NeuralNetworkBackground = () => {
-  return (
-    <div className="fixed inset-0 overflow-hidden pointer-events-none z-[1]">
-      {/* 1. Ultra-Visible Constellation Grid */}
-      <svg className="absolute inset-0 w-full h-full opacity-30">
-        <defs>
-          <pattern id="neural-grid-bold" width="80" height="80" patternUnits="userSpaceOnUse">
-            <circle cx="2" cy="2" r="2" fill="#10b981" fillOpacity="0.8" />
-            <path d="M 80 0 L 0 0 0 80" fill="none" stroke="#10b981" strokeWidth="1" strokeOpacity="0.2" />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#neural-grid-bold)" />
-      </svg>
-
-      {/* 2. Heavy Neural Particles (Points) */}
-      {[...Array(60)].map((_, i) => (
-        <motion.div
-          key={`point-${i}`}
-          initial={{ 
-            x: `${Math.random() * 100}vw`, 
-            y: `${Math.random() * 100}vh`,
-            opacity: Math.random() * 0.5 + 0.2,
-            scale: Math.random() * 0.5 + 0.5
-          }}
-          animate={{ 
-            y: ["-10vh", "110vh"],
-            x: [`${Math.random() * 100}vw`, `${(Math.random() * 100) + (Math.random() * 10 - 5)}vw`],
-            opacity: [0, 1, 0]
-          }}
-          transition={{ 
-            duration: 15 + Math.random() * 25, 
-            repeat: Infinity, 
-            ease: "linear",
-            delay: -Math.random() * 20
-          }}
-          className="absolute w-1.5 h-1.5 bg-emerald-400 rounded-full blur-[1px] shadow-[0_0_12px_#10b981,0_0_24px_rgba(16,185,129,0.4)]"
-        />
-      ))}
-
-      {/* 3. Data Networking Lines (Environmental Feeling) */}
-      {[...Array(20)].map((_, i) => (
-        <motion.div
-          key={`line-group-${i}`}
-          initial={{ 
-            x: `${Math.random() * 100}%`, 
-            y: `${Math.random() * 100}%`,
-            opacity: 0,
-          }}
-          animate={{ 
-            opacity: [0, 0.7, 0],
-            rotate: [0, 90],
-            scale: [0.8, 1.2, 0.8]
-          }}
-          transition={{ 
-            duration: 12 + Math.random() * 15, 
-            repeat: Infinity, 
-            ease: "easeInOut",
-            delay: -Math.random() * 10
-          }}
-          className="absolute w-96 h-[1.5px] translate-x-[-50%] translate-y-[-50%]"
-        >
-            <div className="w-full h-full bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent" />
-            <motion.div 
-               animate={{ left: ["0%", "100%"] }}
-               transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-               className="absolute top-[-2px] w-8 h-1.5 bg-white shadow-[0_0_15px_#fff] blur-[1px] rounded-full"
-            />
-        </motion.div>
-      ))}
-
-      {/* 4. Large Pulsing Nodes */}
-      {[...Array(8)].map((_, i) => (
-         <motion.div
-            key={`node-${i}`}
-            initial={{ x: `${Math.random() * 100}%`, y: `${Math.random() * 100}%` }}
-            animate={{ 
-                scale: [1, 1.1, 1],
-                opacity: [0.3, 0.6, 0.3]
-            }}
-            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: i }}
-            className="absolute -translate-x-1/2 -translate-y-1/2"
-         >
-            <div className="w-4 h-4 rounded-full border-2 border-emerald-500/40 flex items-center justify-center">
-                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-[0_0_20px_#10b981]" />
-            </div>
-            <motion.div 
-                animate={{ scale: [1, 3], opacity: [0.5, 0] }}
-                transition={{ duration: 4, repeat: Infinity }}
-                className="absolute inset-0 w-4 h-4 border border-emerald-500/60 rounded-full"
-            />
-         </motion.div>
-      ))}
-
-      {/* 5. Deep Scan Beams (Diagonal) */}
-      <motion.div 
-        animate={{ top: ["-100%", "200%"] }}
-        transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-        className="absolute left-[-50%] w-[200%] h-[300px] bg-emerald-500/[0.03] -rotate-45 pointer-events-none blur-[100px]"
-      />
-    </div>
-  );
-};
 
 export default function MainDashboard() {
   const { state, dispatch } = useApp();
@@ -196,13 +96,13 @@ export default function MainDashboard() {
   return (
     <div className="flex flex-col lg:flex-row h-screen w-screen overflow-hidden relative bg-[#010408] text-white">
       {/* Premium Cinematic Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#010408] via-[#050c18] to-[#010408] pointer-events-none z-0" />
+      <div className="absolute inset-0 bg-gradient-to-br from-[#010408] via-[#050c18] to-[#010408] pointer-events-none z-[-2]" />
       
-      <NeuralNetworkBackground />
+      <EcoNeuralBackground />
       
       {/* Visual Depth Glows */}
-      <div className="absolute top-[-10%] right-[-5%] w-[70vw] h-[70vh] bg-emerald-500/[0.05] rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] left-[-5%] w-[60vw] h-[60vh] bg-cyan-500/[0.04] rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-[-10%] right-[-5%] w-[70vw] h-[70vh] bg-emerald-500/[0.05] rounded-full blur-[140px] pointer-events-none z-[-1]" />
+      <div className="absolute bottom-[-10%] left-[-5%] w-[60vw] h-[60vh] bg-cyan-500/[0.04] rounded-full blur-[120px] pointer-events-none z-[-1]" />
       
       <Sidebar />
 

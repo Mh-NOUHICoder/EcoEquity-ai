@@ -558,11 +558,6 @@ const SentinelMap: React.FC = () => {
                 {isMobile ? "Risk" : t('heatRisk') || "Heat Risk"}
               </button>
             </div>
-
-            {/* Theme Switcher Next to Search */}
-            <div className="flex-shrink-0">
-               <MapThemeSwitcher align="right" direction="down" className="relative scale-90" showText={false} />
-            </div>
           </motion.div>
       </div>
 
@@ -703,24 +698,36 @@ const SentinelMap: React.FC = () => {
                 </div>
              )}
 
-             {/* CENTER: Main Telemetry Bridge (Icon on Mobile, Card on Desktop) */}
-             {!isMobile ? (
-                <motion.div initial={{ y: 20 }} animate={{ y: 0 }} className="flex-1 max-w-2xl hidden lg:block">
-                   <div className={`${HUD_GLASS} px-10 py-6 rounded-[3rem] border-white/5 shadow-[0_40px_100px_rgba(0,0,0,0.8)] backdrop-blur-[60px] relative group overflow-hidden`}>
-                        <div className="relative z-10 flex items-center justify-between gap-8">
-                            <div className="flex items-center gap-6">
-                                <Target size={20} className="text-cyan-400" />
+              {/* Target Coordinates - Compact & Creative */}
+              {!isMobile ? (
+                <motion.div initial={{ y: 20 }} animate={{ y: 0 }} className="flex-1 max-w-lg hidden lg:block">
+                   <div className={`${HUD_GLASS} px-8 py-5 rounded-[2.5rem] border-white/5 shadow-3xl backdrop-blur-3xl overflow-hidden relative group`}>
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 blur-[40px] rounded-full translate-x-10 -translate-y-10 group-hover:bg-cyan-500/10 transition-colors" />
+                        <div className="relative z-10 flex items-center justify-between">
+                            <div className="flex items-center gap-5">
+                                <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
+                                    <Target size={18} className="text-cyan-400 group-hover:rotate-45 transition-transform duration-500" />
+                                </div>
                                 <div className="flex flex-col">
-                                    <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mb-1">{t('targetLockCoords')}</span>
-                                    <div className="text-2xl font-mono font-black text-white tracking-widest tabular-nums leading-none mb-1">
-                                        {currentCenter[0].toFixed(5)}°N / {currentCenter[1].toFixed(5)}°E
+                                    <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.3em] mb-1">{t('targetLockCoords')}</span>
+                                    <div className="flex items-center gap-2">
+                                        <div className="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-mono font-black text-white tracking-widest tabular-nums">
+                                            {currentCenter[0].toFixed(5)}°N
+                                        </div>
+                                        <div className="w-1.5 h-px bg-white/20" />
+                                        <div className="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-mono font-black text-white tracking-widest tabular-nums">
+                                            {currentCenter[1].toFixed(5)}°E
+                                        </div>
                                     </div>
-                                    <span className="text-[9px] font-mono text-white/40 uppercase tracking-widest">DATA DATE: {new Date().toISOString().split('T')[0]}</span>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
-                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                <span className="text-[11px] font-black text-white/80 uppercase tracking-widest">{t('stableOps')}</span>
+                            
+                            <div className="flex flex-col items-end">
+                                <span className="text-[8px] font-mono text-white/20 uppercase tracking-widest mb-1.5">{new Date().toISOString().split('T')[0]}</span>
+                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                                    <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
+                                    <span className="text-[8px] font-black text-emerald-400 uppercase tracking-widest">ECO-SYNC</span>
+                                </div>
                             </div>
                         </div>
                    </div>

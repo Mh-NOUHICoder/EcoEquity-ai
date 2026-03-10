@@ -29,7 +29,7 @@ Designed for the **EU-CODE WEEK Hackathon**, EcoEquity AI transforms complex Ear
 EcoEquity AI bridges the gap between aerospace telemetry and hyper-local urban advocacy. Our platform follows a specialized, four-stage lifecycle to transform raw spectral data into meaningful climate justice.
 
 1.  **Space-Layer Acquisition** 🛰️
-    The journey begins in low Earth orbit. We capture **high-resolution multispectral imagery** directly from the **Sentinel-2 satellite constellation**. This raw environmental data provides the foundation for our global monitoring capabilities, ensuring an objective, un-biased view of urban ecosystems in real-time.
+    The journey begins in low Earth orbit. We capture **high-resolution multispectral imagery** directly from the **EU Copernicus Sentinel-2 satellite constellation**. This raw environmental data provides the foundation for our global monitoring capabilities, ensuring an objective, un-biased view of urban ecosystems in real-time.
 
 2.  **Neural Core Processing** 🧠
     Once captured, the data enters our **AI-driven Neural Core**. Advanced algorithms perform deep spectral analysis to extract:
