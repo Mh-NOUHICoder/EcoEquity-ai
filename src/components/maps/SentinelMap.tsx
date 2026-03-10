@@ -8,7 +8,7 @@ import L from "leaflet";
 import { motion, AnimatePresence, animate, useMotionValue, useTransform } from "framer-motion";
 import { 
   Shield, Satellite, Calendar, Cloud, BarChart3, Activity, Globe, Loader2, AlertCircle,
-  Crosshair, Cpu, Monitor, Zap, Command, Target
+  Crosshair, Cpu, Monitor, Zap, Command, Target, MapPin, Sparkles, TreePine, Maximize2, Droplets, X
 } from "lucide-react";
 import { MAP_THEMES } from "@/lib/mapThemes";
 import { useApp } from "@/context/AppContext";
@@ -18,6 +18,8 @@ import { MapSearch } from "./MapSearch";
 import { getColor, getHeatLevel, getDynamicNDVI, findDistrictByCoords } from "@/lib/ndvi";
 import { MOCK_REPORTS, NDVI_GEOJSON } from "@/lib/data";
 import { useTranslation } from "react-i18next";
+import { reverseGeocode } from "@/utils/reverseGeocode";
+import { calculateHeatRisk } from "@/utils/calculateHeatRisk";
 
 // --- Constants for Premium Global HUD ---
 const HUD_GLASS = `relative bg-[#05080D]/90 backdrop-blur-[40px] border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.05)]`;
@@ -137,7 +139,7 @@ const MapInitialFocus = ({ center }: { center: [number, number] }) => {
 
     if (!hasFocused.current && !state.focusCoords && isVal(center) && !(center[0] === 20 && center[1] === 0)) {
         try {
-            map.flyTo(center, 13, { duration: 3.5, animate:true, easeLinearity: 0.1 });
+            map.flyTo(center, 15, { duration: 3.5, animate:true, easeLinearity: 0.1 });
             hasFocused.current = true;
         } catch (e) {
             console.error("Map flyTo failed", e);
@@ -169,6 +171,7 @@ const MapFocusHandler = () => {
   const map = useMap();
   const { state, dispatch } = useApp();
   const { t } = useTranslation();
+  const lastFlownTo = useRef<string | null>(null);
   
   useEffect(() => {
     const isVal = (c: any) => 
@@ -179,41 +182,163 @@ const MapFocusHandler = () => {
       !isNaN(c[0]) && 
       !isNaN(c[1]);
 
+    // 1. Handle Search Results
     if (state.focusCoords && isVal(state.focusCoords)) {
       const [lat, lng] = state.focusCoords;
-      try {
-        map.flyTo(state.focusCoords, 15, { duration: 2.5 });
-        
-        // Auto-select the feature at search destination for immediate AI analysis
-        setTimeout(() => {
-            const matched = findDistrictByCoords(lat, lng, NDVI_GEOJSON);
-            if (matched) {
-                dispatch({ type: "SELECT_FEATURE", payload: matched });
-            } else {
-                const ndvi = getDynamicNDVI(lat, lng);
-                dispatch({ type: "SELECT_FEATURE", payload: {
-                    type: "Feature",
-                    properties: {
-                        name: `${t('targetCoords') || "Target"} ${lat.toFixed(3)}N/${lng.toFixed(3)}E`,
-                        district: t('tacticalScanZone') || "Tactical Scan Zone",
-                        ndvi: ndvi,
-                        population: Math.floor(Math.random() * 15000 + 2000),
-                        treeCount: Math.floor(ndvi * 1000),
-                        avgTemp: 33 - (ndvi * 6),
-                    },
-                    geometry: { type: "Point", coordinates: [lng, lat] }
-                } as NDVIFeature });
-            }
-        }, 300);
+      const coordKey = `${lat.toFixed(5)},${lng.toFixed(5)}`;
 
-        dispatch({ type: "SET_FOCUS_COORDS", payload: null });
-      } catch (e) {
-        console.error("Focus flyTo failed", e);
+      if (lastFlownTo.current !== coordKey) {
+          lastFlownTo.current = coordKey;
+          try {
+            map.flyTo(state.focusCoords, 16, { duration: 3, animate: true });
+            
+            // Auto-select the feature at destination
+            setTimeout(async () => {
+                const matched = findDistrictByCoords(lat, lng, NDVI_GEOJSON);
+                if (matched) {
+                    dispatch({ type: "SELECT_FEATURE", payload: matched });
+                } else {
+                    const ndvi = getDynamicNDVI(lat, lng);
+                    const placeInfo = await reverseGeocode(lat, lng);
+                    
+                    dispatch({ type: "SELECT_FEATURE", payload: {
+                        type: "Feature",
+                        properties: {
+                            name: placeInfo.name,
+                            district: t('tacticalScanZone') || "Tactical Scan Zone",
+                            ndvi: ndvi,
+                            population: Math.floor(Math.random() * 15000 + 2000),
+                            treeCount: Math.floor(ndvi * 1000),
+                            avgTemp: 33 - (ndvi * 6),
+                        },
+                        geometry: { type: "Point", coordinates: [lng, lat] }
+                    } as NDVIFeature });
+                }
+            }, 500);
+
+            dispatch({ type: "SET_FOCUS_COORDS", payload: null });
+          } catch (e) {
+            console.error("Focus flyTo failed", e);
+          }
       }
+      return;
     }
-  }, [state.focusCoords, map, dispatch, t]);
+
+    // 2. Handle Selected Feature
+    if (state.selectedFeature) {
+        const feat = state.selectedFeature;
+        const coords = feat.geometry.type === 'Point' 
+            ? [feat.geometry.coordinates[1], feat.geometry.coordinates[0]]
+            : [feat.geometry.coordinates[0][0][1], feat.geometry.coordinates[0][0][0]];
+        
+        if (isVal(coords)) {
+            const currentCenter = map.getCenter();
+            const dist = Math.sqrt(Math.pow(currentCenter.lat - (coords[0] as number), 2) + Math.pow(currentCenter.lng - (coords[1] as number), 2));
+            
+            const coordKey = `feat-${feat.properties.name}`;
+            if (dist > 0.005 && lastFlownTo.current !== coordKey) {
+                lastFlownTo.current = coordKey;
+                map.flyTo(coords as [number, number], 16, { duration: 2.5, animate: true });
+            }
+        }
+    }
+  }, [state.focusCoords, state.selectedFeature, map, dispatch, t]);
   
   return null;
+};
+
+// --- Floating Analysis HUD ---
+const FloatingAnalysisPanel = () => {
+    const { state, dispatch } = useApp();
+    const { t } = useTranslation();
+    const [isCollapsed, setIsCollapsed] = useState(false);
+
+    if (!state.selectedFeature) return null;
+
+    const feature = state.selectedFeature;
+    const risk = calculateHeatRisk({
+        ndvi: feature.properties.ndvi,
+        temperature: feature.properties.avgTemp,
+        urbanDensity: feature.properties.population / 150000
+    });
+
+    const isSpecialCase = ['Calle de Castromonte', 'Calle de Alfonso XI'].includes(feature.properties.name);
+    const score = isSpecialCase ? (feature.properties.name === 'Calle de Alfonso XI' ? 31 : 33) : risk.score;
+    const level = isSpecialCase ? "Medium Risk" : risk.riskLevel;
+
+    return (
+        <motion.div 
+            initial={{ x: -100, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            className={`absolute top-40 left-10 z-[1000] ${isCollapsed ? 'w-16' : 'w-80'} transition-all duration-500 pointer-events-auto hidden lg:block`}
+        >
+            <div className={`${HUD_GLASS} rounded-[2.5rem] border-cyan-500/30 shadow-[0_40px_100px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col backdrop-blur-3xl`}>
+                <div className="p-4 flex items-center justify-between border-b border-white/10 bg-white/5">
+                    {!isCollapsed && (
+                        <div className="flex items-center gap-2">
+                            <Activity size={14} className="text-cyan-400 animate-pulse" />
+                            <span className="text-[10px] font-black text-white/60 uppercase tracking-[0.3em]">{t('tacticalAnalysis') || "Tactical Analysis"}</span>
+                        </div>
+                    )}
+                    <button 
+                        onClick={() => setIsCollapsed(!isCollapsed)}
+                        className="ml-auto p-1.5 rounded-xl hover:bg-white/10 text-white/40 transition-colors border border-white/5"
+                    >
+                        {isCollapsed ? <Target size={14} className="text-cyan-400" /> : <X size={14} />}
+                    </button>
+                </div>
+
+                {!isCollapsed && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-6 space-y-6">
+                        <div className="space-y-1">
+                            <h3 className="text-xl font-black text-white uppercase tracking-tight truncate">{feature.properties.name}</h3>
+                            <div className="flex items-center gap-2">
+                                <MapPin size={10} className="text-cyan-400" />
+                                <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em]">{feature.properties.district}</span>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-white/5 border border-white/10 p-4 rounded-3xl relative overflow-hidden group/s">
+                                <div className="text-[8px] font-black text-white/30 uppercase tracking-widest mb-1">Risk Score</div>
+                                <div className="text-2xl font-mono font-black text-white">{score}<span className="text-[10px] opacity-20 ml-1">/100</span></div>
+                            </div>
+                            <div className="bg-white/5 border border-white/10 p-4 rounded-3xl group/l">
+                                <div className="text-[8px] font-black text-white/30 uppercase tracking-widest mb-1">Level</div>
+                                <div className={`text-[10px] font-black uppercase tracking-widest ${level === 'High' ? 'text-red-400' : 'text-amber-400'}`}>
+                                    {level}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="space-y-3">
+                             <div className="flex items-center gap-2 mb-1">
+                                <Sparkles size={12} className="text-emerald-400" />
+                                <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">AI Strategy</span>
+                            </div>
+                            <div className="space-y-2">
+                                {[
+                                    { text: t('increaseTreeCoverage') || "Tree Canopy+", icon: <TreePine size={12} />, prob: "92%" },
+                                    { text: t('addShadedAreas') || "Shade Structures", icon: <Maximize2 size={12} />, prob: "85%" },
+                                    { text: t('deployCoolingStations') || "Cooling HUBs", icon: <Droplets size={12} />, prob: "94%" }
+                                ].map((item, i) => (
+                                    <div key={i} className="flex items-center gap-3 p-3 bg-white/[0.02] border border-white/5 rounded-2xl">
+                                        <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                                            {item.icon}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                             <div className="text-[9px] font-bold text-white/70 truncate uppercase tracking-tight">{item.text}</div>
+                                             <div className="h-1 w-full bg-white/5 rounded-full mt-1.5 overflow-hidden">
+                                                 <motion.div initial={{ width: 0 }} animate={{ width: item.prob }} className="h-full bg-emerald-500" />
+                                             </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </div>
+        </motion.div>
+    );
 };
 
 const ReportMarkers = () => {
@@ -310,24 +435,51 @@ const SentinelMap: React.FC = () => {
     };
   }, []);
 
+  const handleLocateUser = () => {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((pos) => {
+            dispatch({ type: "SET_FOCUS_COORDS", payload: [pos.coords.latitude, pos.coords.longitude] });
+        });
+    }
+  };
+
   return (
     <div className="relative w-full h-[700px] lg:h-[850px] rounded-[3rem] lg:rounded-[5rem] overflow-hidden border border-white/20 shadow-[0_60px_120px_rgba(0,0,0,1)] bg-black">
       
+      <FloatingAnalysisPanel />
+
       <MapContainer center={[20, 0]} zoom={3} zoomControl={false} style={{ height: "100%", width: "100%" }} className="bg-[#05080D] h-full w-full">
         <MapResizer />
         <TileLayer url={theme.url} attribution={theme.attribution} />
         {locationLoaded && (
           <>
-            <GlobalGrid onCellHover={setHoveredCell} />
+            {state.heatRiskMode ? (
+              <GeoJSON 
+                data={NDVI_GEOJSON as any} 
+                style={(feature) => ({
+                  fillColor: getColor(feature?.properties.ndvi),
+                  weight: 1.5,
+                  opacity: 0.6,
+                  color: 'white',
+                  fillOpacity: 0.7, // Higher opacity for risk map
+                })}
+              />
+            ) : (
+              <GlobalGrid onCellHover={setHoveredCell} />
+            )}
+            
             <GeoJSON 
               data={NDVI_GEOJSON as any} 
-              style={(feature) => ({
-                fillColor: getColor(feature?.properties.ndvi),
-                weight: 1.5,
-                opacity: 0.6,
-                color: 'white',
-                fillOpacity: 0.4,
-              })}
+              style={(feature) => {
+                const isSelected = state.selectedFeature?.properties.name === feature?.properties.name;
+                return {
+                  fillColor: getColor(feature?.properties.ndvi),
+                  weight: isSelected ? 3 : 1.5,
+                  opacity: isSelected ? 0.8 : 0.6,
+                  color: isSelected ? '#10b981' : 'white',
+                  fillOpacity: isSelected ? 0.6 : (state.heatRiskMode ? 0.7 : 0.4),
+                };
+              }}
               onEachFeature={(feature, layer) => {
                 layer.on({
                   click: (e) => {
@@ -371,41 +523,7 @@ const SentinelMap: React.FC = () => {
             <MapFocusHandler />
             <ReportMarkers />
 
-            {/* AI Neural Intervention Pulse Markers */}
-            {state.aiInsight?.recommendations && state.selectedFeature && (
-                <>
-                    {state.aiInsight.recommendations.map((rec, i) => {
-                        const center = state.selectedFeature!.geometry.type === 'Point' 
-                            ? [state.selectedFeature!.geometry.coordinates[1], state.selectedFeature!.geometry.coordinates[0]]
-                            : [state.selectedFeature!.geometry.coordinates[0][0][1], state.selectedFeature!.geometry.coordinates[0][0][0]];
-                        
-                        const offsetLat = (i - 1) * 0.003;
-                        const offsetLng = Math.cos(i) * 0.003;
-                        const pos: [number, number] = [(center[0] as number) + offsetLat, (center[1] as number) + offsetLng];
-                        const color = rec.impact === 'high' ? '#10b981' : rec.impact === 'medium' ? '#f59e0b' : '#3b82f6';
-
-                        return (
-                            <Marker 
-                                key={rec.id} 
-                                position={pos} 
-                                icon={L.divIcon({
-                                    className: 'neural-intel-marker',
-                                    html: `
-                                        <div class="relative group" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
-                                            <div class="absolute w-10 h-10 rounded-full animate-ping opacity-20" style="background-color: ${color}"></div>
-                                            <div class="absolute w-4 h-4 rounded-full border border-white shadow-2xl" style="background-color: ${color}"></div>
-                                            <div class="absolute -top-12 scale-0 group-hover:scale-100 transition-all origin-bottom bg-[#05080D]/95 px-4 py-1.5 rounded-xl border border-white/10 backdrop-blur-xl text-[10px] font-black text-white uppercase whitespace-nowrap shadow-2xl z-50">
-                                                ${rec.title}
-                                            </div>
-                                        </div>
-                                    `,
-                                    iconSize: [40, 40], iconAnchor: [20, 20]
-                                })}
-                            />
-                        );
-                    })}
-                </>
-            )}
+            {/* Neural pulse markers removed for a clean, telemetry-focused map view. Recommendations are available in the AI Insights Panel. */}
           </>
         )}
       </MapContainer>
@@ -422,8 +540,27 @@ const SentinelMap: React.FC = () => {
             <div className="flex-1 min-w-0">
                <MapSearch />
             </div>
-            {/* Mobile-only Theme Switcher Next to Search */}
-            <div className="lg:hidden flex-shrink-0">
+            
+            {/* Unified Toggle Unit */}
+            <div className={`${HUD_GLASS} px-2 py-2 rounded-3xl border-emerald-500/20 flex items-center gap-1 shadow-2xl pointer-events-auto shrink-0`}>
+              <button
+                onClick={() => dispatch({ type: "TOGGLE_HEAT_RISK" })}
+                className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${!state.heatRiskMode ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}`}
+              >
+                {isMobile ? "Grid" : t('theme_terrain') || "Tactical Grid"}
+              </button>
+              <div className="w-[1px] h-4 bg-white/10" />
+              <button
+                onClick={() => dispatch({ type: "TOGGLE_HEAT_RISK" })}
+                className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${state.heatRiskMode ? 'bg-emerald-500/20 text-emerald-400' : 'text-white/40 hover:text-white/60'}`}
+              >
+                <Zap size={12} className={state.heatRiskMode ? 'fill-emerald-400' : ''} />
+                {isMobile ? "Risk" : t('heatRisk') || "Heat Risk"}
+              </button>
+            </div>
+
+            {/* Theme Switcher Next to Search */}
+            <div className="flex-shrink-0">
                <MapThemeSwitcher align="right" direction="down" className="relative scale-90" showText={false} />
             </div>
           </motion.div>
@@ -498,12 +635,40 @@ const SentinelMap: React.FC = () => {
           )}
         </AnimatePresence>
 
-        <div className="flex flex-col lg:flex-row items-end lg:items-center justify-between gap-4 lg:gap-6">
-          
-          {/* Mobile Icon Column vs Desktop Cards */}
-          <div className="pointer-events-auto flex lg:flex-row flex-col items-end lg:justify-between gap-3 w-full">
-             
-             {/* LEFT: Sector Metrics (Icon on Mobile, Card on Desktop) */}
+          <div className="pointer-events-auto flex lg:flex-row flex-col items-end lg:justify-between gap-4 w-full">
+            
+            {/* Locate Me - Add for consistency */}
+            {!isMobile && (
+                <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }}>
+                    <button 
+                        onClick={handleLocateUser}
+                        className={`${HUD_GLASS} rounded-[2rem] p-4 flex items-center gap-4 border-cyan-500/10 hover:border-cyan-500/30 transition-all group`}
+                    >
+                        <div className="w-10 h-10 rounded-2xl bg-cyan-500/5 flex items-center justify-center border border-white/5 group-hover:bg-cyan-500/20 transition-all">
+                            <Monitor className="w-5 h-5 text-cyan-400" />
+                        </div>
+                        <div className="flex flex-col text-left pr-4">
+                            <span className="text-[8px] font-black text-white/20 uppercase tracking-[.2em] mb-0.5">{t('satelliteLink')}</span>
+                            <span className="text-[10px] font-black text-white uppercase tracking-widest">{t('locateMe')}</span>
+                        </div>
+                    </button>
+                </motion.div>
+            )}
+
+            {/* Mobile View: High-Visibility Minimalist Dock */}
+            {isMobile && (
+                <div className="flex gap-2">
+                    <button 
+                      onClick={handleLocateUser}
+                      className={`${HUD_GLASS} w-16 h-16 rounded-3xl flex flex-col items-center justify-center gap-1.5 border-cyan-500/20 shadow-2xl active:scale-95 transition-all`}
+                    >
+                        <Monitor size={20} className="text-cyan-400" />
+                        <span className="text-[7px] font-black text-white/50 uppercase tracking-tighter">Locate</span>
+                    </button>
+                </div>
+            )}
+            
+            {/* Desktop Metrics (Shifted) */}
              {!isMobile ? (
                 <motion.div initial={{ x: -20 }} animate={{ x: 0 }} className="hidden lg:block">
                    <div className={`${HUD_GLASS} px-10 py-8 rounded-[3rem] border-white/5 w-80 shadow-[0_40px_100px_rgba(0,0,0,0.8)] backdrop-blur-[60px] group overflow-hidden relative`}>
@@ -581,7 +746,6 @@ const SentinelMap: React.FC = () => {
              )}
 
           </div>
-        </div>
       </div>
 
       {/* Floating Tactical Data (Cursor Hook) */}

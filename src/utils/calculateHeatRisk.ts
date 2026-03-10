@@ -20,6 +20,14 @@ export function calculateHeatRisk({ ndvi, temperature, urbanDensity }: Calculate
   const densityRisk = Math.max(0, Math.min(1, urbanDensity)) * 20;
 
   let score = Math.round(ndviRisk + tempRisk + densityRisk);
+  
+  // High vegetation acts as a powerful shield against heat risk
+  if (ndvi >= 0.7) {
+      score -= 30; // Massive cooling bonus for dense forests/parks
+  } else if (ndvi >= 0.6) {
+      score -= 20; 
+  }
+
   score = Math.max(0, Math.min(100, score));
 
   let riskLevel: "Low" | "Medium" | "High" = "Low";

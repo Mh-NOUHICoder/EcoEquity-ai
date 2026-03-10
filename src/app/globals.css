@@ -20,15 +20,15 @@
 
 @layer components {
   .glass {
-    @apply bg-black/20 backdrop-blur-xl;
+    @apply bg-black/10 backdrop-blur-md border border-white/5;
   }
 
   .glass-card {
-    @apply bg-white/[0.02] backdrop-blur-lg border border-white/[0.06];
+    @apply bg-white/[0.01] backdrop-blur-sm border border-white/[0.04];
   }
 
   .glass-hover {
-    @apply transition-all duration-300 hover:bg-white/[0.04] hover:border-white/[0.08];
+    @apply transition-all duration-300 hover:bg-white/[0.03] hover:backdrop-blur-md hover:border-white/[0.08];
   }
 
   .heat-badge-critical {

@@ -9,13 +9,6 @@ const GlobalHUDFx: React.FC = () => {
       {/* Scanline Effect */}
       <div className="absolute inset-0 bg-scanlines opacity-[0.03]" />
       
-      {/* Dynamic Scan Bar */}
-      <motion.div
-        animate={{ top: ["0%", "100%"] }}
-        transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-        className="absolute left-0 right-0 h-px bg-white/5 shadow-[0_0_15px_rgba(255,255,255,0.2)]"
-      />
-
       {/* Frame Brackets */}
       {/* Top Left */}
       <div className="absolute top-8 left-8 w-12 h-12 border-t-2 border-l-2 border-white/10" />

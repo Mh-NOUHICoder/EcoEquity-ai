@@ -13,7 +13,7 @@ export async function generateAIInsight(feature: NDVIFeature, lang: Language = "
   const content = {
     en: {
         hot: {
-            text: `${name} is a critical heat island with an NDVI of ${ndvi.toFixed(2)}, which is ${Math.abs(diff).toFixed(0)}% below the city average.`,
+            text: `Sector ${name} exhibits critical thermal retention. Priority intervention: Immediate reforestation of core grid-points.`,
             healthImpact: "High risk of heatstroke and respiratory distress in vulnerable populations.",
             recTitles: ["Emergency Canopy", "Cooling Station", "Urban Policy"],
             recDescs: [
@@ -23,7 +23,7 @@ export async function generateAIInsight(feature: NDVIFeature, lang: Language = "
             ]
         },
         stable: {
-            text: `${name} has an NDVI of ${ndvi.toFixed(2)}, which is ${diff > 0 ? `${diff.toFixed(0)}% above` : `${Math.abs(diff).toFixed(0)}% below`} the city average.`,
+            text: `Sector ${name} exhibits stable biosynthetic output. Priority intervention: Maintaining current canopy density levels.`,
             healthImpact: "Minimal environmental health risks detected. Ecosystem cooling is optimal.",
             recTitles: ["Preservation", "Community Garden", "Biodiversity Link"],
             recDescs: [
@@ -35,7 +35,7 @@ export async function generateAIInsight(feature: NDVIFeature, lang: Language = "
     },
     ar: {
         hot: {
-            text: `يعاني ${name} من جزر حرارية حرجة مع مؤشر NDVI قدره ${ndvi.toFixed(2)}، وهو أقل بنسبة ${Math.abs(diff).toFixed(0)}% من متوسط المدينة.`,
+            text: `يُظهر قطاع ${name} احتباساً حرارياً حرجاً. التدخل ذو الأولوية: إعادة تشجير فورية لنقاط الشبكة الأساسية.`,
             healthImpact: "خطر كبير للإصابة بضربات الشمس وضيق التنفس لدى الفئات الضعيفة.",
             recTitles: ["مظلة الطوارئ", "محطة تبريد", "السياسة الحضرية"],
             recDescs: [
@@ -45,7 +45,7 @@ export async function generateAIInsight(feature: NDVIFeature, lang: Language = "
             ]
         },
         stable: {
-            text: `يتمتع ${name} بمؤشر NDVI قدره ${ndvi.toFixed(2)}، وهو ${diff > 0 ? `أعلى بنسبة ${diff.toFixed(0)}%` : `أقل بنسبة ${Math.abs(diff).toFixed(0)}%`} من متوسط المدينة.`,
+            text: `يُظهر قطاع ${name} إنتاجاً حيوياً مستقراً. التدخل ذو الأولوية: الحفاظ على مستويات كثافة المظلة الحالية.`,
             healthImpact: "تم اكتشاف حد أدنى من المخاطر الصحية البيئية. تبريد النظام البيئي مثالي.",
             recTitles: ["الحفاظ", "حديقة مجتمعية", "رابط التنوع البيولوجي"],
             recDescs: [
@@ -57,7 +57,7 @@ export async function generateAIInsight(feature: NDVIFeature, lang: Language = "
     },
     fr: {
         hot: {
-            text: `${name} est un îlot de chaleur critique avec un NDVI de ${ndvi.toFixed(2)}.`,
+            text: `Le secteur ${name} présente une rétention thermique critique. Intervention prioritaire : Reboisement immédiat des points centraux.`,
             healthImpact: "Risque élevé de coup de chaleur et de détresse respiratoire.",
             recTitles: ["Canopée d'urgence", "Station de refroidissement", "Politique urbaine"],
             recDescs: [
@@ -67,7 +67,7 @@ export async function generateAIInsight(feature: NDVIFeature, lang: Language = "
             ]
         },
         stable: {
-            text: `${name} a un NDVI de ${ndvi.toFixed(2)}.`,
+            text: `Le secteur ${name} présente une production biosynthétique stable. Intervention prioritaire : Maintien des niveaux de densité de canopée.`,
             healthImpact: "Risques sanitaires minimes. Le refroidissement de l'écosystème est optimal.",
             recTitles: ["Préservation", "Jardin communautaire", "Lien biodiversité"],
             recDescs: [
@@ -79,7 +79,7 @@ export async function generateAIInsight(feature: NDVIFeature, lang: Language = "
     },
     es: {
         hot: {
-            text: `${name} es una isla de calor crítica con un NDVI de ${ndvi.toFixed(2)}.`,
+            text: `El sector ${name} presenta una retención térmica crítica. Intervención prioritaria: Reforestación inmediata de los puntos centrales.`,
             healthImpact: "Alto riesgo de golpe de calor y problemas respiratorios.",
             recTitles: ["Dosel de emergencia", "Estación de enfriamiento", "Política urbana"],
             recDescs: [
@@ -89,7 +89,7 @@ export async function generateAIInsight(feature: NDVIFeature, lang: Language = "
             ]
         },
         stable: {
-            text: `${name} tiene un NDVI de ${ndvi.toFixed(2)}.`,
+            text: `El sector ${name} presenta una producción biosintética estable. Intervención prioritaria: Mantenimiento de los niveles de densidad actuales.`,
             healthImpact: "Riesgos ambientales mínimos. El enfriamiento del ecosistema es óptimo.",
             recTitles: ["Preservación", "Jardín comunitario", "Enlace de biodiversidad"],
             recDescs: [

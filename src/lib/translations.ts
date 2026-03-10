@@ -180,7 +180,10 @@ export const translations: Record<Language, any> = {
     addGreenRoofs: "Add green roofs and walls",
     createCoolingParks: "Create cooling parks",
     addShadedStreets: "Add shaded pedestrian streets",
-    implementEmergencyProtocols: "Implement emergency heat protocols"
+    implementEmergencyProtocols: "Implement emergency heat protocols",
+    stableStatus: "Stable Status",
+    requestCanopySupport: "Request Canopy Support",
+    ecoInsights: "Eco Insights"
   },
   fr: {
     dashboard: "Tableau de Bord",
@@ -364,7 +367,10 @@ export const translations: Record<Language, any> = {
     addGreenRoofs: "Ajouter des toits et murs végétalisés",
     createCoolingParks: "Créer des parcs de refroidissement",
     addShadedStreets: "Ajouter des rues piétonnes ombragées",
-    implementEmergencyProtocols: "Protocoles d'urgence chaleur"
+    implementEmergencyProtocols: "Protocoles d'urgence chaleur",
+    stableStatus: "Statut Stable",
+    requestCanopySupport: "Demander Support Canopée",
+    ecoInsights: "Analyses Éco"
   },
   ar: {
     dashboard: "لوحة القيادة",
@@ -548,7 +554,10 @@ export const translations: Record<Language, any> = {
     addGreenRoofs: "إضافة أسطح وجدران خضراء",
     createCoolingParks: "إنشاء حدائق تبريد",
     addShadedStreets: "إضافة شوارع مشاة مظللة",
-    implementEmergencyProtocols: "تنفيذ بروتوكولات طوارئ الحرارة"
+    implementEmergencyProtocols: "تنفيذ بروتوكولات طوارئ الحرارة",
+    stableStatus: "حالة مستقرة",
+    requestCanopySupport: "طلب دعم المظلة",
+    ecoInsights: "رؤى بيئية"
   },
   es: {
     dashboard: "Panel de Control",
@@ -732,6 +741,9 @@ export const translations: Record<Language, any> = {
     addGreenRoofs: "Agregar techos y paredes verdes",
     createCoolingParks: "Crear parques de enfriamiento",
     addShadedStreets: "Agregar calles peatonales sombreadas",
-    implementEmergencyProtocols: "Protocolos de emergencia por calor"
+    implementEmergencyProtocols: "Protocolos de emergencia por calor",
+    stableStatus: "Estado Estable",
+    requestCanopySupport: "Solicitar Apoyo de Dosel",
+    ecoInsights: "Perspectivas Eco"
   }
 };
