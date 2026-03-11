@@ -102,26 +102,57 @@ export async function generateAIInsight(feature: NDVIFeature, lang: Language = "
   };
 
   const translations = content[lang] || content.en;
-  const activeData = isHot ? translations.hot : translations.stable;
+  
+  // Dynamic logic for more variety
+  let activeData;
+  if (ndvi < 0.2) {
+      activeData = translations.hot;
+  } else if (ndvi < 0.4) {
+      activeData = {
+          text: `Sector ${name} shows moderate thermal stress. Ecosystem equilibrium is declining.`,
+          healthImpact: "Noticeable increase in surface temperature. Monitoring recommended for elderly residents.",
+          recTitles: ["Tree Infill", "Permeable Paths", "Active Cooling"],
+          recDescs: [
+              "Increase tree density in existing gaps to strengthen partial canopy cover.",
+              "Replace non-porous surfaces with permeable materials to reduce runoff heat.",
+              "Deploy misting systems at major transport hubs in this sector."
+          ]
+      };
+      // For non-EN languages, we probably need a better way, but for now let's stick to English logic or simple translation fallback
+      if (lang === 'ar') {
+          activeData = {
+              text: `يُظهر قطاع ${name} إجهاداً حرارياً معتدلاً. توازن النظام البيئي في تراجع.`,
+              healthImpact: "زيادة ملحوظة في درجة حرارة السطح. يوصى بمراقبة كبار السن.",
+              recTitles: ["ملء الأشجار", "مسارات نفاذة", "تبريد نشط"],
+              recDescs: [
+                  "زيادة كثافة الأشجار في الفجوات الموجودة.",
+                  "استبدال الأسطح غير المسامية بمواد نفاذة.",
+                  "نشر أنظمة الرذاذ في مراكز النقل الرئيسية."
+              ]
+          };
+      }
+  } else {
+      activeData = translations.stable;
+  }
 
   const recommendations: AIRecommendation[] = [
     {
       id: "rec-1",
-      type: isHot ? "planting" : "policy",
+      type: ndvi < 0.2 ? "planting" : (ndvi < 0.4 ? "maintenance" : "policy"),
       title: activeData.recTitles[0],
       description: activeData.recDescs[0],
       impact: "high"
     },
     {
       id: "rec-2",
-      type: isHot ? "cooling" : "community",
+      type: ndvi < 0.2 ? "cooling" : (ndvi < 0.4 ? "infra" : "community"),
       title: activeData.recTitles[1],
       description: activeData.recDescs[1],
       impact: "medium"
     },
     {
         id: "rec-3",
-        type: isHot ? "policy" : "community",
+        type: "policy",
         title: activeData.recTitles[2],
         description: activeData.recDescs[2],
         impact: "low"

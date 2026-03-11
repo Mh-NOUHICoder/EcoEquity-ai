@@ -23,14 +23,14 @@ export default function MapThemeSwitcher({ className, align = "left", direction 
     <div className={className || "absolute top-6 left-6 z-[1000]"}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center ${showText ? 'gap-4 px-6' : 'px-4'} py-4 rounded-3xl bg-[#05080D]/40 backdrop-blur-[40px] border border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.02)] hover:border-white/20 transition-all duration-500 group`}
+        className={`flex items-center ${showText ? 'gap-3 px-4' : 'px-3'} py-3 rounded-2xl bg-[#05080D]/40 backdrop-blur-[40px] border border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.02)] hover:border-white/20 transition-all duration-500 group`}
       >
         <div className="relative">
-          <Layers className="w-4 h-4 text-cyan-400 group-hover:rotate-12 transition-transform relative z-10" />
+          <Layers className="w-3.5 h-3.5 text-cyan-400 group-hover:rotate-12 transition-transform relative z-10" />
           <div className="absolute inset-0 bg-cyan-400/20 blur-md rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
         {showText && (
-          <span className="text-[10px] font-black font-mono text-white/50 group-hover:text-white uppercase tracking-[0.3em] transition-colors">
+          <span className="text-[9px] font-black font-mono text-white/50 group-hover:text-white uppercase tracking-[0.3em] transition-colors">
             {t(`theme_${currentTheme.id}`) || currentTheme.name}
           </span>
         )}
@@ -39,20 +39,20 @@ export default function MapThemeSwitcher({ className, align = "left", direction 
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: direction === "up" ? -20 : 20, scale: 0.95 }}
+            initial={{ opacity: 0, y: direction === "up" ? -15 : 15, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: direction === "up" ? -20 : 20, scale: 0.95 }}
+            exit={{ opacity: 0, y: direction === "up" ? -15 : 15, scale: 0.95 }}
             className={`
-              absolute ${direction === "up" ? "bottom-full mb-4" : "top-full mt-4"} 
-              ${align === "right" ? "right-0" : "left-0"} w-72 p-3 grid gap-2 rounded-[2.5rem]
+              absolute ${direction === "up" ? "bottom-full mb-3" : "top-full mt-3"} 
+              ${align === "right" ? "right-0" : "left-0"} w-64 p-2 grid gap-1.5 rounded-[2rem]
               bg-[#05080D]/90 backdrop-blur-[60px] 
               border border-white/5 
               shadow-[0_60px_100px_rgba(0,0,0,0.9)]
               z-[6000]
             `}
           >
-            <div className="px-3 py-2 border-b border-white/5 mb-1">
-              <p className="text-[9px] uppercase tracking-[0.3em] text-cyan-400 font-black">
+            <div className="px-3 py-1.5 border-b border-white/5 mb-0.5">
+              <p className="text-[8px] uppercase tracking-[0.3em] text-cyan-400 font-black">
                 {t('selectTerrain')}
               </p>
             </div>
@@ -63,26 +63,26 @@ export default function MapThemeSwitcher({ className, align = "left", direction 
                   dispatch({ type: "SET_MAP_THEME", payload: theme.id });
                   setIsOpen(false);
                 }}
-                className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all ${
+                className={`flex items-center justify-between px-3 py-2 rounded-lg transition-all ${
                   state.mapTheme === theme.id
                     ? "bg-cyan-500/10 border border-cyan-500/20"
                     : "hover:bg-white/5 border border-transparent"
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <div className={`w-2.5 h-2.5 rounded-full transition-all ${
+                <div className="flex items-center gap-2.5">
+                  <div className={`w-2 h-2 rounded-full transition-all ${
                     state.mapTheme === theme.id 
                       ? "bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.8)]" 
                       : "bg-white/10"
                   }`} />
-                  <span className={`text-[12px] font-bold tracking-wide ${
+                  <span className={`text-[11px] font-bold tracking-wide ${
                     state.mapTheme === theme.id ? "text-white" : "text-white/60"
                   }`}>
                     {t(`theme_${theme.id}`) || theme.name}
                   </span>
                 </div>
                 {state.mapTheme === theme.id && (
-                  <Check className="w-3.5 h-3.5 text-cyan-400" strokeWidth={3} />
+                  <Check className="w-3 h-3 text-cyan-400" strokeWidth={3} />
                 )}
               </button>
             ))}

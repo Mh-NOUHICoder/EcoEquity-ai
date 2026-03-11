@@ -60,7 +60,7 @@ export type Language = "ar" | "en" | "es" | "fr";
 
 export interface AIRecommendation {
   id: string;
-  type: "planting" | "cooling" | "policy" | "community";
+  type: "planting" | "cooling" | "policy" | "community" | "maintenance" | "infra";
   title: string;
   description: string;
   impact: "high" | "medium" | "low";

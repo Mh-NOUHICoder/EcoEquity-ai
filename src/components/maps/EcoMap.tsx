@@ -1,23 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState, useMemo } from "react";
-import { MapContainer, TileLayer, GeoJSON, useMap, Marker, Popup, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, GeoJSON, useMap, Marker, Popup, useMapEvents, Rectangle } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { motion, AnimatePresence } from "framer-motion";
-import { Navigation, Crosshair, Zap, Loader2 } from "lucide-react";
-
-import { useApp } from "@/context/AppContext";
-import { NDVIFeature } from "@/types";
-import { NDVI_GEOJSON, MOCK_REPORTS } from "@/lib/data";
-import { getColor, getHeatLevel, getDynamicNDVI, findDistrictByCoords } from "@/lib/ndvi";
-import { MAP_THEMES } from "@/lib/mapThemes";
-import { HeatRiskLayer } from "./HeatRiskLayer";
-import { MapSearch } from "./MapSearch";
-import { useTranslation } from "react-i18next";
-import { calculateHeatRisk } from "@/utils/calculateHeatRisk";
-import { reverseGeocode } from "@/utils/reverseGeocode";
 import { 
+    Navigation, 
+    Crosshair, 
+    Zap, 
+    Loader2,
     MapPin, 
     Sparkles, 
     TreePine, 
@@ -28,8 +20,23 @@ import {
     X, 
     Target,
     Brain,
-    Satellite
+    Satellite,
+    Monitor,
+    Command,
+    CheckCircle2
 } from "lucide-react";
+
+import { useApp } from "@/context/AppContext";
+import { NDVIFeature } from "@/types";
+import { NDVI_GEOJSON, MOCK_REPORTS } from "@/lib/data";
+import { getColor, getHeatLevel, getDynamicNDVI, findDistrictByCoords, getAIStrategies } from "@/lib/ndvi";
+import { MAP_THEMES } from "@/lib/mapThemes";
+import MapThemeSwitcher from "./MapThemeSwitcher";
+import { HeatRiskLayer } from "./HeatRiskLayer";
+import { MapSearch } from "./MapSearch";
+import { useTranslation } from "react-i18next";
+import { calculateHeatRisk } from "@/utils/calculateHeatRisk";
+import { reverseGeocode } from "@/utils/reverseGeocode";
 
 // --- Constants ---
 const HUD_GLASS = `relative bg-[#05080D]/90 backdrop-blur-[40px] border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.05)]`;
@@ -56,7 +63,7 @@ function MapResizer() {
 const FloatingAnalysisPanel = () => {
     const { state, dispatch } = useApp();
     const { t, i18n } = useTranslation();
-    const isRTL = typeof i18n.dir === 'function' ? i18n.dir() === 'rtl' : i18n.language === 'ar';
+    const isRTL = state.language === 'ar';
     const [isCollapsed, setIsCollapsed] = useState(false);
 
     if (!state.selectedFeature) return null;
@@ -76,9 +83,9 @@ const FloatingAnalysisPanel = () => {
         <motion.div 
             initial={{ x: isRTL ? 100 : -100, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
-            className={`absolute ${isRTL ? 'bottom-32 left-10' : 'top-44 left-10'} z-[1200] ${isCollapsed ? 'w-16' : 'w-80'} transition-all duration-500 pointer-events-auto hidden lg:block`}
+            className={`absolute ${isRTL ? 'bottom-32 right-10' : 'top-44 left-10'} z-[1200] ${isCollapsed ? 'w-16' : 'w-80'} transition-all duration-500 pointer-events-auto hidden lg:block`}
         >
-            <div className={`${HUD_GLASS} rounded-[2.5rem] border-cyan-500/30 shadow-[0_40px_100px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col backdrop-blur-3xl`}>
+            <div dir={isRTL ? "rtl" : "ltr"} className={`${HUD_GLASS} rounded-[2.5rem] border-cyan-500/30 shadow-[0_40px_100px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col backdrop-blur-3xl`}>
                 <div className="p-4 flex items-center justify-between border-b border-white/10 bg-white/5">
                     {!isCollapsed && (
                         <div className="flex items-center gap-2">
@@ -108,24 +115,12 @@ const FloatingAnalysisPanel = () => {
                                     <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em]">{feature.properties.district}</span>
                                 </div>
                             </div>
-                            {/* Tactical Visualizer */}
-                            <div className="relative w-14 h-14 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-emerald-500/5 group/viz">
-                                <motion.div 
-                                    animate={{ y: ["0%", "100%", "0%"] }}
-                                    transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                                    className="absolute top-0 left-0 w-full h-0.5 bg-emerald-400 shadow-[0_0_8px_#10b981] z-10"
-                                />
-                                <div className="absolute inset-0 flex items-center justify-center opacity-20">
-                                    <Satellite size={24} className="text-emerald-400" />
-                                </div>
-                            </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-3">
                             <div className="bg-white/5 border border-white/10 p-4 rounded-3xl relative overflow-hidden group/s">
                                 <div className="text-[8px] font-black text-white/30 uppercase tracking-widest mb-1">{t('riskScore') || "Risk Score"}</div>
                                 <div className="text-2xl font-mono font-black text-white truncate">{score}<span className="text-[10px] opacity-20 ml-1">/100</span></div>
-                                <div className="absolute top-0 right-0 w-8 h-8 bg-cyan-400/5 rotate-45 translate-x-4 -translate-y-4" />
                             </div>
                             <div className="bg-white/5 border border-white/10 p-4 rounded-3xl group/l">
                                 <div className="text-[8px] font-black text-white/30 uppercase tracking-widest mb-1">{t('level') || "Level"}</div>
@@ -141,17 +136,13 @@ const FloatingAnalysisPanel = () => {
                                 <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">{t('aiStrategy') || "AI Strategy"}</span>
                             </div>
                             <div className="space-y-3">
-                                {[
-                                    { text: t('increaseTreeCoverage') || "Tree Canopy+", icon: <TreePine size={12} />, prob: "92%" },
-                                    { text: t('addShadedAreas') || "Shade Structures", icon: <Maximize2 size={12} />, prob: "85%" },
-                                    { text: t('deployCoolingStations') || "Cooling HUBs", icon: <Droplets size={12} />, prob: "94%" }
-                                ].map((item, i) => (
+                                {getAIStrategies(feature).map((item, i) => (
                                     <div key={i} className="flex items-center gap-3 p-3 bg-white/[0.04] border border-white/10 rounded-2xl hover:bg-white/10 transition-colors shadow-lg shadow-black/20 relative z-10">
                                         <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-                                            {item.icon}
+                                            {item.type === 'water' ? <Droplets size={12} /> : item.type === 'infra' ? <Maximize2 size={12} /> : <TreePine size={12} />}
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <div className="text-[9px] font-bold text-white/70 truncate uppercase tracking-tight">{item.text}</div>
+                                            <div className="text-[9px] font-bold text-white/70 truncate uppercase tracking-tight">{t(item.text)}</div>
                                             <div className="h-1 w-full bg-white/5 rounded-full mt-1.5 overflow-hidden">
                                                 <motion.div initial={{ width: 0 }} animate={{ width: item.prob }} className="h-full bg-emerald-500" />
                                             </div>
@@ -166,6 +157,8 @@ const FloatingAnalysisPanel = () => {
         </motion.div>
     );
 };
+
+// --- Community Reports ---
 
 const ReportMarkers = () => {
     const { state } = useApp();
@@ -351,6 +344,7 @@ function MapClickHandler() {
 export default function EcoMap() {
   const { state, dispatch } = useApp();
   const { t } = useTranslation();
+  const isRTL = state.language === 'ar';
   const theme = MAP_THEMES.find(th => th.id === state.mapTheme) || MAP_THEMES[0];
   const defaultCenter: [number, number] = [30.998043, -6.755833];
   
@@ -452,7 +446,7 @@ export default function EcoMap() {
                         }}
                         onEachFeature={(feature, layer) => {
                             const { name, ndvi } = feature.properties;
-                            layer.bindTooltip(`<div class="font-sans text-[10px] font-bold p-1"><div class="text-white/60 mb-0.5">${name}</div><div style="color:${getColor(ndvi)}">NDVI ${ndvi.toFixed(3)}</div></div>`, { sticky: true, className: "eco-tooltip" });
+                            // Popups disabled per user request - analysis is shown in the side panel
                             layer.on("click", (e) => {
                                 L.DomEvent.stopPropagation(e as any);
                                 dispatch({ type: "SELECT_FEATURE", payload: feature as NDVIFeature });
@@ -496,7 +490,7 @@ export default function EcoMap() {
       {/* COMMAND DECK */}
       <div className="absolute top-16 lg:top-14 left-1/2 -translate-x-1/2 z-[1005] w-full max-w-sm lg:max-w-xl px-4 pointer-events-none">
           <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="flex flex-col gap-3">
-              <div className="flex items-center gap-2 pointer-events-auto">
+              <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : 'flex-row'} gap-2 pointer-events-auto`}>
                   <div className="flex-1 min-w-0"><MapSearch /></div>
                   <div className={`${HUD_GLASS} px-2 py-2 rounded-3xl border-emerald-500/20 flex items-center gap-1 shadow-2xl shrink-0`}>
                     <button onClick={() => dispatch({ type: "TOGGLE_HEAT_RISK" })} className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${!state.heatRiskMode ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}`}>Grid</button>
@@ -541,34 +535,6 @@ export default function EcoMap() {
                         </div>
                      )}
 
-                     {activeMobileCard === 'intelligence' && state.selectedFeature && (
-                        <div className="space-y-6">
-                           <div className="flex items-center gap-3 border-b border-white/5 pb-3">
-                               <Brain className="w-4 h-4 text-emerald-400" />
-                               <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em]">Tactical Intelligence</span>
-                           </div>
-                           <div className="flex items-start justify-between gap-4">
-                               <div className="space-y-1">
-                                   <h3 className="text-lg font-black text-white uppercase">{state.selectedFeature.properties.name}</h3>
-                                   <div className="flex items-center gap-1.5"><MapPin size={10} className="text-cyan-400" /><span className="text-[8px] font-bold text-white/30 truncate">{state.selectedFeature.properties.district}</span></div>
-                               </div>
-                               <div className="relative w-12 h-12 shrink-0 rounded-xl bg-emerald-500/10 border border-white/10 overflow-hidden flex items-center justify-center">
-                                   <motion.div animate={{ y: ["0%", "100%", "0%"] }} transition={{ duration: 4, repeat: Infinity, ease: "linear" }} className="absolute top-0 w-full h-0.5 bg-emerald-400 z-10" />
-                                   <Satellite size={20} className="text-emerald-400/40" />
-                               </div>
-                           </div>
-                           
-                           {state.isLoadingInsight ? <div className="flex items-center justify-center h-20"><Loader2 className="animate-spin text-emerald-400" /></div> : (
-                               <div className="space-y-4">
-                                   <div className="grid grid-cols-2 gap-2">
-                                       <div className="bg-white/5 p-3 rounded-2xl border border-white/5"><div className="text-[7px] text-white/30 uppercase mb-1">Risk Score</div><div className="text-lg font-mono font-black text-white">{calculateHeatRisk({ndvi: state.selectedFeature.properties.ndvi, temperature: state.selectedFeature.properties.avgTemp, urbanDensity: state.selectedFeature.properties.population / 150000 }).score}</div></div>
-                                       <div className="bg-white/5 p-3 rounded-2xl border border-white/5"><div className="text-[7px] text-white/30 uppercase mb-1">Status</div><div className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Optimal</div></div>
-                                   </div>
-                               </div>
-                           )}
-                        </div>
-                     )}
-
                      {activeMobileCard === 'telemetry' && (
                         <div className="space-y-4">
                            <div className="flex items-center gap-3 border-b border-white/5 pb-3"><Target className="w-4 h-4 text-cyan-400" /><span className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em]">Sector Coordinates</span></div>
@@ -580,16 +546,102 @@ export default function EcoMap() {
             )}
           </AnimatePresence>
 
-          <div className="pointer-events-auto flex items-end justify-between w-full">
-            <div className="flex gap-2">
-                <button onClick={handleLocateUser} className={`${HUD_GLASS} w-16 h-16 rounded-3xl flex flex-col items-center justify-center border-cyan-500/20 active:scale-95 transition-all shadow-2xl`}><Navigation size={20} className="text-cyan-400" /><span className="text-[7px] font-black text-white/50 uppercase">Locate</span></button>
-                <button onClick={() => setActiveMobileCard(activeMobileCard === 'metrics' ? null : 'metrics')} className={`${HUD_GLASS} w-16 h-16 rounded-3xl flex flex-col items-center justify-center border-emerald-500/20 ${activeMobileCard === 'metrics' ? 'bg-emerald-500/20' : ''}`}><Crosshair size={20} className={activeMobileCard === 'metrics' ? 'text-emerald-400' : 'text-white/30'} /><span className="text-[7px] font-black text-white/50 uppercase">Metrics</span></button>
-            </div>
-            <div className="flex gap-2">
-                {state.selectedFeature && (
-                    <button onClick={() => setActiveMobileCard(activeMobileCard === 'intelligence' ? null : 'intelligence')} className={`${HUD_GLASS} w-16 h-16 rounded-3xl flex flex-col items-center justify-center border-emerald-500/20 ${activeMobileCard === 'intelligence' ? 'bg-emerald-500/20' : ''}`}><Brain size={20} className={activeMobileCard === 'intelligence' ? 'text-emerald-400' : 'text-white/30'} /><span className="text-[7px] font-black text-white/50 uppercase">Intel</span></button>
+          <div className={`pointer-events-auto flex ${isRTL ? 'lg:flex-row-reverse' : 'lg:flex-row'} flex-col items-end lg:justify-between gap-4 w-full`}>
+            
+            {/* Desktop Metrics HUD */}
+            {!isMobile && (
+                <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="flex gap-2">
+                    <button 
+                        onClick={handleLocateUser}
+                        className={`${HUD_GLASS} rounded-[1.5rem] p-2.5 flex items-center gap-3 border-cyan-500/10 hover:border-cyan-500/30 transition-all group`}
+                    >
+                        <div className="w-8 h-8 rounded-xl bg-cyan-500/5 flex items-center justify-center border border-white/5 group-hover:bg-cyan-500/20 transition-all">
+                            <Monitor className="w-4 h-4 text-cyan-400" />
+                        </div>
+                        <div className="flex flex-col text-left pr-2">
+                            <span className="text-[7px] font-black text-white/20 uppercase tracking-[.2em] mb-0.5">{t('satelliteLink')}</span>
+                            <span className="text-[9px] font-black text-white uppercase tracking-widest">{t('locateMe')}</span>
+                        </div>
+                    </button>
+                </motion.div>
+            )}
+
+            {/* Mobile View Toggles */}
+            {isMobile && (
+                <div className="flex gap-2">
+                    <button onClick={handleLocateUser} className={`${HUD_GLASS} w-16 h-16 rounded-3xl flex flex-col items-center justify-center border-cyan-500/20 active:scale-95 transition-all shadow-2xl`}><Navigation size={20} className="text-cyan-400" /><span className="text-[7px] font-black text-white/50 uppercase">Locate</span></button>
+                    <button onClick={() => setActiveMobileCard(activeMobileCard === 'metrics' ? null : 'metrics')} className={`${HUD_GLASS} w-16 h-16 rounded-3xl flex flex-col items-center justify-center border-emerald-500/20 ${activeMobileCard === 'metrics' ? 'bg-emerald-500/20' : ''}`}><Crosshair size={20} className={activeMobileCard === 'metrics' ? 'text-emerald-400' : 'text-white/30'} /><span className="text-[7px] font-black text-white/50 uppercase">Metrics</span></button>
+                </div>
+            )}
+
+            <div className="flex gap-2 items-end">
+                {/* Desktop Center HUD: Target Coordinates */}
+                {!isMobile && (
+                    <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="flex-1 max-w-sm hidden lg:block">
+                        <div className={`${HUD_GLASS} px-6 py-3 rounded-[2rem] border-white/5 shadow-3xl backdrop-blur-3xl overflow-hidden relative group`}>
+                            <div className="relative z-10 flex items-center justify-between gap-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
+                                        <Target size={16} className="text-cyan-400 group-hover:rotate-45 transition-transform duration-500" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-[7px] font-black text-white/30 uppercase tracking-[0.3em] mb-0.5">{t('targetLockCoords') || "Target Lock"}</span>
+                                        <div className="flex items-center gap-1.5">
+                                            <div className="px-2 py-0.5 rounded-lg bg-white/5 border border-white/10 text-[10px] font-mono font-black text-white tracking-widest tabular-nums font-bold">
+                                                {mapCenter[0].toFixed(5)}°N
+                                            </div>
+                                            <div className="w-1 h-px bg-white/20" />
+                                            <div className="px-2 py-0.5 rounded-lg bg-white/5 border border-white/10 text-[10px] font-mono font-black text-white tracking-widest tabular-nums font-bold">
+                                                {mapCenter[1].toFixed(5)}°E
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="flex flex-col items-end opacity-60">
+                                    <span className="text-[6px] font-mono text-white/20 uppercase tracking-widest mb-0.5 text-right">{new Date().toISOString().split('T')[0]}</span>
+                                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                                        <div className="w-0.5 h-0.5 rounded-full bg-emerald-400 animate-pulse" />
+                                        <span className="text-[6px] font-black text-emerald-400 uppercase tracking-widest whitespace-nowrap">ECO-SYNC ACTIVE</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
                 )}
-                <button onClick={() => setActiveMobileCard(activeMobileCard === 'telemetry' ? null : 'telemetry')} className={`${HUD_GLASS} w-16 h-16 rounded-3xl flex flex-col items-center justify-center border-cyan-500/20 ${activeMobileCard === 'telemetry' ? 'bg-cyan-500/20' : ''}`}><Target size={20} className={activeMobileCard === 'telemetry' ? 'text-cyan-400' : 'text-white/30'} /><span className="text-[7px] font-black text-white/50 uppercase">Target</span></button>
+
+                {!isMobile && (
+                    <div className="flex flex-col items-end justify-center mb-1">
+                        <span className="text-[8px] font-black text-white/30 uppercase tracking-widest mb-1.5 pr-2">{t('selectTerrain') || "Terrain Type"}</span>
+                        <MapThemeSwitcher align="right" direction="up" className="relative" />
+                    </div>
+                )}
+                
+                {isMobile ? (
+                    <div className="flex gap-2">
+                        {state.selectedFeature && (
+                            <button onClick={() => setActiveMobileCard(activeMobileCard === 'intelligence' ? null : 'intelligence')} className={`${HUD_GLASS} w-16 h-16 rounded-3xl flex flex-col items-center justify-center border-emerald-500/20 ${activeMobileCard === 'intelligence' ? 'bg-emerald-500/20' : ''}`}><Brain size={20} className={activeMobileCard === 'intelligence' ? 'text-emerald-400' : 'text-white/30'} /><span className="text-[7px] font-black text-white/50 uppercase">Intel</span></button>
+                        )}
+                        <button onClick={() => setActiveMobileCard(activeMobileCard === 'telemetry' ? null : 'telemetry')} className={`${HUD_GLASS} w-16 h-16 rounded-3xl flex flex-col items-center justify-center border-cyan-500/20 ${activeMobileCard === 'telemetry' ? 'bg-cyan-500/20' : ''}`}><Target size={20} className={activeMobileCard === 'telemetry' ? 'text-cyan-400' : 'text-white/30'} /><span className="text-[7px] font-black text-white/50 uppercase">Target</span></button>
+                    </div>
+                ) : (
+                    <div className="flex gap-2">
+                        {state.selectedFeature && (
+                            <button 
+                                onClick={() => dispatch({ type: "SET_VIEW", payload: "ai" })}
+                                className={`${HUD_GLASS} px-4 h-12 rounded-2xl flex items-center gap-3 border-emerald-500/10 hover:border-emerald-500/40 transition-all group bg-emerald-500/5`}
+                            >
+                                <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-white/5 group-hover:bg-emerald-500/30 transition-all">
+                                    <Brain className="w-4 h-4 text-emerald-400" />
+                                </div>
+                                <div className="flex flex-col text-left pr-2">
+                                    <span className="text-[7px] font-black text-white/20 uppercase tracking-[.2em] mb-0.5">{t('aiInsights')}</span>
+                                    <span className="text-[9px] font-black text-white uppercase tracking-widest">Intelligence</span>
+                                </div>
+                            </button>
+                        )}
+                    </div>
+                )}
             </div>
           </div>
       </div>

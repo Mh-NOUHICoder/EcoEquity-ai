@@ -28,7 +28,7 @@ import {
 import { calculateHeatRisk } from "@/utils/calculateHeatRisk";
 import { useApp } from "@/context/AppContext";
 import { NDVI_GEOJSON, CITY_AVG_NDVI } from "@/lib/data";
-import { getColor, getDynamicNDVI, findDistrictByCoords } from "@/lib/ndvi";
+import { getColor, getDynamicNDVI, findDistrictByCoords, getAIStrategies } from "@/lib/ndvi";
 import { generateAIInsight } from "@/lib/gemini";
 import { NDVIFeature, AIRecommendation } from "@/types";
 import { useEffect, useRef, useState } from "react";
@@ -37,7 +37,7 @@ import { reverseGeocode } from "@/utils/reverseGeocode";
 
 export default function AIInsightsPanel() {
   const { state, dispatch } = useApp();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [isScanningCenter, setIsScanningCenter] = useState(false);
 
   const criticalZones = NDVI_GEOJSON.features.filter(
@@ -176,6 +176,13 @@ export default function AIInsightsPanel() {
     if (state.selectedFeature && analysisKey !== lastAnalysisKey.current) {
         lastAnalysisKey.current = analysisKey;
         
+        // Scroll into view on mobile if selected from external (like map)
+        if (window.innerWidth < 1024) {
+          setTimeout(() => {
+            document.getElementById('ai-core-intel')?.scrollIntoView({ behavior: 'smooth' });
+          }, 100);
+        }
+
         const load = async () => {
             dispatch({ type: "SET_LOADING_INSIGHT", payload: true });
             const insight = await generateAIInsight(state.selectedFeature!, state.language);
@@ -186,8 +193,9 @@ export default function AIInsightsPanel() {
     }
   }, [state.selectedFeature, state.language, dispatch]);
 
+  const isRTL = state.language === 'ar';
   return (
-    <div className="h-full flex flex-col overflow-hidden bg-obsidian-950/40 lg:bg-transparent">
+    <div dir={isRTL ? "rtl" : "ltr"} className="h-full flex flex-col overflow-hidden bg-obsidian-950/40 lg:bg-transparent">
       {/* HEADER: NEURAL INTELLIGENCE HUB */}
       <div className="p-5 lg:p-7 border-b border-white/[0.08] shrink-0 bg-[#05080D]/40 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/5 blur-[100px] rounded-full translate-x-16 -translate-y-16" />
@@ -312,272 +320,186 @@ export default function AIInsightsPanel() {
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-6"
               >
-                {/* 1. SECTOR HEADER & DISTRICT ANALYSIS */}
-                <div className="glass rounded-[2rem] border border-white/10 bg-gradient-to-br from-white/[0.04] to-transparent shadow-[0_40px_80px_-20px_rgba(0,0,0,0.8)] relative overflow-hidden group">
+                {/* 1. UNIFIED DISTRICT ANALYSIS REPORT */}
+                <div className="relative overflow-hidden group">
                     {/* Decorative Background Elements */}
-                    <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/5 blur-[80px] rounded-full -translate-y-1/2 translate-x-1/2 group-hover:bg-emerald-500/10 transition-colors" />
-                    <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-cyan-500/5 blur-[60px] rounded-full transition-colors" />
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/2 transition-colors" />
+                    <div className="absolute -bottom-20 -left-20 w-48 h-48 bg-cyan-500/5 blur-[80px] rounded-full transition-colors" />
 
-                    <div className="p-7 space-y-7 relative z-10">
-                        {/* Header Section */}
-                        <div className="flex items-start justify-between">
-                            <div className="space-y-1.5">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <div className="w-1 h-3.5 bg-emerald-400 rounded-full" />
-                                    <span className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.3em]">{t('districtAnalysis')}</span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <h3 className="text-2xl font-black text-white uppercase tracking-tighter leading-none">
-                                        {state.selectedFeature.properties.name}
-                                    </h3>
-                                    <button 
-                                        onClick={() => dispatch({ type: "SELECT_FEATURE", payload: null })}
-                                        className="p-2 rounded-xl bg-white/5 border border-white/10 text-white/40 hover:text-red-400 hover:bg-red-400/10 hover:border-red-400/30 transition-all group/close"
-                                        title={t('clearSelection') || "Clear Selection"}
-                                    >
-                                        <X size={16} className="group-hover/close:rotate-90 transition-transform" />
-                                    </button>
-                                </div>
-                                 <div className="flex items-center gap-2">
-                                     <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">{state.selectedFeature.properties.district}</span>
-                                     <div className="w-1 h-1 rounded-full bg-emerald-400/20" />
-                                     <div className="flex items-center gap-2">
-                                         <CheckCircle2 size={10} className="text-emerald-400" />
-                                         <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">{t('stableStatus') || "Stable Status"}</span>
-                                     </div>
-                                 </div>
-                             </div>
-
-                             {/* Tactical Visualizer (Replacing missing image) */}
-                             <div className="relative w-24 h-24 shrink-0 group/viz ml-4">
-                                <div className="absolute inset-0 bg-emerald-500/10 rounded-[2rem] border border-white/10 overflow-hidden group-hover/viz:border-emerald-500/40 transition-colors shadow-2xl">
-                                    <motion.div 
-                                        animate={{ y: ["0%", "100%", "0%"] }}
-                                        transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                                        className="h-0.5 w-full bg-emerald-400 shadow-[0_0_15px_#10b981] relative z-20"
-                                    />
-                                    <div className="absolute inset-0 flex items-center justify-center opacity-40">
-                                        <Satellite size={40} className="text-emerald-400" />
-                                    </div>
-                                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_transparent_0%,_rgba(0,0,0,0.4)_100%)]" />
-                                </div>
-                                <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-obsidian-950 animate-pulse z-30" />
-                             </div>
-                             
-                             {state.isLoadingInsight ? (
-                                <div className="px-4 py-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-2 backdrop-blur-md">
-                                    <Activity size={14} className="text-emerald-400 animate-spin" />
-                                    <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">{t('processing')}</span>
-                                </div>
-                            ) : (
-                                <div className="text-right">
-                                    {(() => {
-                                        const risk = calculateHeatRisk({
-                                            ndvi: state.selectedFeature.properties.ndvi,
-                                            temperature: state.selectedFeature.properties.avgTemp,
-                                            urbanDensity: state.selectedFeature.properties.population / 150000
-                                         });
-                                        
-                                        // Special display for high-fidelity case studies
-                                        if (state.selectedFeature?.properties.name === 'Calle de Castromonte') return null;
-
-                                        const colorClass = risk.riskLevel === "High" ? "text-red-400" : risk.riskLevel === "Medium" ? "text-amber-400" : "text-emerald-400";
-                                        const bgClass = risk.riskLevel === "High" ? "bg-red-400/5 border-red-400/10" : risk.riskLevel === "Medium" ? "bg-amber-400/5 border-amber-400/10" : "bg-emerald-400/5 border-emerald-400/10";
-                                        return (
-                                            <div className="space-y-1">
-                                                <div className="text-xl font-mono font-black text-white leading-none tracking-tighter tabular-nums drop-shadow-2xl">
-                                                    {risk.score}<span className="text-[10px] text-white/20 ml-1">/100</span>
-                                                </div>
-                                                <div className={`px-3 py-1 rounded-lg border text-[8px] font-black uppercase tracking-widest inline-block ${bgClass} ${colorClass}`}>
-                                                    {risk.riskLevel} {t('riskLevel')}
-                                                </div>
-                                            </div>
-                                        );
-                                    })()}
-                                </div>
-                            )}
+                    <div className="relative z-10">
+                        {/* Header Label */}
+                        <div className="flex items-center gap-3 mb-8">
+                            <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                                <Activity size={14} className="text-emerald-400" />
+                            </div>
+                            <span className="text-[11px] font-black text-emerald-400 uppercase tracking-[0.4em]">{t('districtEnvironmentalAnalysis') || "District Environmental Analysis"}</span>
+                            
+                            {/* Close Button Integrated */}
+                            <button 
+                                onClick={() => dispatch({ type: "SELECT_FEATURE", payload: null })}
+                                className="ml-auto p-2.5 rounded-2xl bg-white/5 border border-white/10 text-white/40 hover:text-red-400 hover:bg-red-400/10 hover:border-red-400/30 transition-all group/close"
+                                title={t('clearSelection') || "Clear Selection"}
+                            >
+                                <X size={16} className="group-hover/close:rotate-90 transition-transform" />
+                            </button>
                         </div>
 
-                        {/* HIGH-FIDELITY CASE STUDIES (SPECIFIC LOCATIONS) */}
-                        {['Calle de Castromonte', 'Calle de Alfonso XI'].includes(state.selectedFeature?.properties.name) && (
-                            <motion.div 
-                                initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                                animate={{ opacity: 1, scale: 1, y: 0 }}
-                                className="mt-2 space-y-4"
-                            >
-                                <div className={`bg-gradient-to-br border rounded-[2rem] p-6 shadow-2xl relative overflow-hidden group/case ${
-                                    state.selectedFeature.properties.name === 'Calle de Alfonso XI' 
-                                    ? "from-cyan-500/10 to-transparent border-cyan-500/20" 
-                                    : "from-amber-500/10 to-transparent border-amber-500/20"
-                                }`}>
-                                    {/* Glass reflection effect */}
-                                    <div className="absolute inset-0 bg-gradient-to-tr from-white/[0.02] to-transparent pointer-events-none" />
-                                    
-                                    <div className="flex items-center gap-4 mb-5 relative z-10">
-                                        <div className={`p-3 rounded-2xl border shadow-inner ${
-                                            state.selectedFeature.properties.name === 'Calle de Alfonso XI' 
-                                            ? "bg-cyan-500/10 border-cyan-500/20" 
-                                            : "bg-amber-500/10 border-amber-500/20"
-                                        }`}>
-                                            <ShieldAlert size={20} className={state.selectedFeature.properties.name === 'Calle de Alfonso XI' ? "text-cyan-400" : "text-amber-400"} />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <span className={`text-[10px] font-black uppercase tracking-[0.2em] block ${
-                                                state.selectedFeature.properties.name === 'Calle de Alfonso XI' ? "text-cyan-400" : "text-amber-400"
-                                            }`}>Tactical Case Study</span>
-                                            <h4 className="text-lg font-black text-white uppercase tracking-tight">{state.selectedFeature.properties.name} Analysis</h4>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4 mb-5 relative z-10">
-                                        <div className="bg-white/[0.03] border border-white/5 p-4 rounded-[1.5rem] relative overflow-hidden group">
-                                            <div className="absolute top-0 right-0 w-12 h-12 bg-white/5 rotate-45 translate-x-1/2 -translate-y-1/2" />
-                                            <div className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-1.5">Heat Risk Score</div>
-                                            <div className="text-3xl font-mono font-black text-white leading-none">
-                                                {state.selectedFeature.properties.name === 'Calle de Alfonso XI' ? 31 : 33}
-                                                <span className="text-sm text-white/20 ml-1">/100</span>
-                                            </div>
-                                        </div>
-                                        <div className="bg-white/[0.03] border border-white/5 p-4 rounded-[1.5rem] relative overflow-hidden group">
-                                            <div className="absolute bottom-0 right-0 w-12 h-12 bg-amber-500/5 rotate-45 translate-x-1/2 translate-y-1/2" />
-                                            <div className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-1.5">Risk Level</div>
-                                            <div className="text-sm font-black text-amber-400 uppercase tracking-widest pt-1">
-                                                {state.selectedFeature.properties.name === 'Calle de Alfonso XI' ? "Medium Risk" : "Medium Risk"}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-3 pt-5 border-t border-white/10 relative z-10">
-                                        <div className="flex items-center gap-2 px-1 mb-2">
-                                            <Sparkles size={14} className="text-emerald-400" />
-                                            <span className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.3em]">{t('aiAdaptationStrategy') || "AI Adaptation Strategy"}</span>
-                                        </div>
-                                        <div className="grid grid-cols-1 gap-2">
-                                            {[
-                                                { text: t('increaseTreeCoverage') || "Increase urban tree coverage", icon: <TreePine size={13} />, prob: "92%" },
-                                                { text: t('addShadedAreas') || "Add shaded areas", icon: <Maximize2 size={13} />, prob: "88%" },
-                                                { text: t('deployCoolingStations') || "Deploy localized cooling stations", icon: <Droplets size={13} />, prob: "95%" },
-                                                { text: t('encourageReflectiveRoofing') || "Encourage reflective roofing", icon: <Sparkles size={13} />, prob: "84%" }
-                                            ].map((item, idx) => (
-                                                <motion.div 
-                                                    key={idx}
-                                                    initial={{ x: -10, opacity: 0 }}
-                                                    animate={{ x: 0, opacity: 1 }}
-                                                    transition={{ delay: 0.1 * idx }}
-                                                    className="flex items-center gap-4 px-5 py-3.5 bg-white/[0.02] border border-white/[0.05] rounded-2xl hover:bg-white/[0.04] hover:border-white/10 transition-all cursor-default group"
-                                                >
-                                                    <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 opacity-60 group-hover:opacity-100 transition-opacity">
-                                                        {item.icon}
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <span className="text-[10px] font-bold text-white/70 tracking-tight group-hover:text-white transition-colors uppercase block truncate">{item.text}</span>
-                                                        <div className="flex items-center gap-2 mt-1">
-                                                            <div className="h-0.5 w-12 bg-white/5 rounded-full overflow-hidden">
-                                                                <motion.div initial={{ width: 0 }} animate={{ width: item.prob }} className="h-full bg-emerald-500" />
-                                                            </div>
-                                                            <span className="text-[8px] font-black text-emerald-400/60 uppercase">{item.prob} Match</span>
-                                                        </div>
-                                                    </div>
-                                                </motion.div>
-                                            ))}
-                                        </div>
-                                    </div>
+                        {/* Location Header */}
+                        <div className="mb-8">
+                            <h3 className="text-4xl font-black text-white uppercase tracking-tighter leading-none mb-4 group-hover:text-emerald-400/90 transition-colors">
+                                {state.selectedFeature.properties.name}
+                            </h3>
+                            <div className="flex items-center gap-3">
+                                <div className="px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-2 shadow-inner">
+                                    <CheckCircle2 size={12} className="text-emerald-400" />
+                                    <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">{t('stableStatus') || "Stable Status"}</span>
                                 </div>
-                            </motion.div>
-                        )}
+                                <div className="h-1 w-1 rounded-full bg-white/10" />
+                                <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">{state.selectedFeature.properties.district}</span>
+                            </div>
+                        </div>
 
-                        {/* Tactical Metrics Grid */}
-                        <div className="grid grid-cols-3 gap-2">
-                            <div className="bg-white/[0.02] border border-white/[0.05] p-4 rounded-[1.5rem] flex flex-col gap-2 group/stat hover:bg-white/[0.04] transition-colors relative">
-                                <TreePine size={14} className="text-emerald-400 opacity-40 group-hover/stat:opacity-100 transition-opacity" />
-                                <div className="space-y-0.5">
-                                    <span className="text-[8px] font-black text-white/20 uppercase tracking-widest block leading-tight">{t('ndviIndex')}</span>
-                                    <span className="text-sm font-mono font-black text-emerald-400 tabular-nums">{state.selectedFeature.properties.ndvi.toFixed(4)}</span>
+                        {/* Tactical Metrics Integrated Grid */}
+                        <div className="grid grid-cols-3 gap-6 mb-10 py-8 border-y border-white/5 bg-white/[0.01]">
+                            <div className="space-y-1.5 text-center lg:text-left">
+                                <span className="text-[9px] font-black text-white/20 uppercase tracking-widest block">{t('ndviIndex') || "NDVI Index"}</span>
+                                <div className="text-2xl font-mono font-black text-emerald-400 drop-shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                                    {state.selectedFeature.properties.ndvi.toFixed(4)}
                                 </div>
                             </div>
-                            <div className="bg-white/[0.02] border border-white/[0.05] p-4 rounded-[1.5rem] flex flex-col gap-2 group/stat hover:bg-white/[0.04] transition-colors relative">
-                                <Users size={14} className="text-cyan-400 opacity-40 group-hover/stat:opacity-100 transition-opacity" />
-                                <div className="space-y-0.5">
-                                    <span className="text-[8px] font-black text-white/20 uppercase tracking-widest block leading-tight">{t('residents')}</span>
-                                    <span className="text-sm font-mono font-black text-white/90 tabular-nums">{(state.selectedFeature.properties.population / 1000).toFixed(1)}k</span>
+                            <div className="space-y-1.5 text-center lg:text-left border-x border-white/5 px-6">
+                                <span className="text-[9px] font-black text-white/20 uppercase tracking-widest block">{t('residents') || "Residents"}</span>
+                                <div className="text-2xl font-mono font-black text-white">
+                                    {(state.selectedFeature.properties.population / 1000).toFixed(1)}k
                                 </div>
                             </div>
-                            <div className="bg-white/[0.02] border border-white/[0.05] p-4 rounded-[1.5rem] flex flex-col gap-2 group/stat hover:bg-white/[0.04] transition-colors relative">
-                                <Thermometer size={14} className="text-amber-400 opacity-40 group-hover/stat:opacity-100 transition-opacity" />
-                                <div className="space-y-0.5">
-                                    <span className="text-[8px] font-black text-white/20 uppercase tracking-widest block leading-tight">{t('surfaceEnergy') || "Surface Energy"}</span>
-                                    <span className="text-sm font-mono font-black text-amber-400 tabular-nums">{state.selectedFeature.properties.avgTemp.toFixed(1)}°C</span>
+                            <div className="space-y-1.5 text-center lg:text-left">
+                                <span className="text-[9px] font-black text-white/20 uppercase tracking-widest block">{t('surfaceEnergy') || "Surface Energy"}</span>
+                                <div className="text-2xl font-mono font-black text-amber-400 drop-shadow-[0_0_15px_rgba(251,191,36,0.3)]">
+                                    {state.selectedFeature.properties.avgTemp.toFixed(1)}°C
                                 </div>
                             </div>
                         </div>
 
                         {/* AI Insight Narrative Card */}
-                        <div className="bg-emerald-500/[0.02] border border-emerald-500/10 rounded-[1.75rem] p-5 relative group/narrative overflow-hidden">
-                            <div className="absolute top-4 left-4">
-                                <Sparkles size={12} className="text-emerald-400/40" />
+                        <div className="mb-10 relative">
+                            <div className="flex items-center gap-3 mb-5">
+                                <Sparkles size={14} className="text-emerald-400" />
+                                <span className="text-[11px] font-black text-emerald-400/80 uppercase tracking-[0.2em]">{t('ecoInsights') || "Eco Insights"}</span>
                             </div>
-                            <div className="space-y-4">
-                                <div>
-                                    <span className="text-[9px] font-black text-emerald-400 uppercase tracking-[0.2em] block mb-3 pl-6">{t('ecoInsights') || "Eco Insights"}</span>
-                                    <AnimatePresence mode="wait">
-                                        {state.isLoadingInsight ? (
-                                            <div className="space-y-2 pl-6">
-                                                <div className="h-3 w-full bg-white/5 rounded-full animate-pulse" />
-                                                <div className="h-3 w-3/4 bg-white/5 rounded-full animate-pulse" />
-                                            </div>
-                                        ) : state.aiInsight ? (
-                                            <motion.p 
-                                                initial={{ opacity: 0 }}
-                                                animate={{ opacity: 1 }}
-                                                className="text-[13px] font-medium text-white/60 leading-relaxed italic pl-6 border-l border-emerald-500/20"
-                                            >
-                                                &quot;{state.aiInsight.text}&quot;
-                                            </motion.p>
-                                        ) : null}
-                                    </AnimatePresence>
-                                </div>
-                                <div className="grid grid-cols-2 gap-2 mt-2">
-                                    <motion.button
-                                        whileHover={{ scale: 1.02, backgroundColor: "rgba(16, 185, 129, 0.15)" }}
-                                        whileTap={{ scale: 0.98 }}
-                                        className="py-3.5 px-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center gap-2 group/btn transition-all"
-                                    >
-                                        <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">{t('requestSupport') || "Request Support"}</span>
-                                        <ArrowRight size={12} className="text-emerald-400 group-hover/btn:translate-x-1 transition-transform" />
-                                    </motion.button>
+                            
+                            <div className="relative py-4 group/insight">
+                                <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-emerald-500/40 to-transparent" />
+                                <AnimatePresence mode="wait">
+                                    {state.isLoadingInsight ? (
+                                        <div className="space-y-3">
+                                            <div className="h-4 w-full bg-white/5 rounded-full animate-pulse" />
+                                            <div className="h-4 w-5/6 bg-white/5 rounded-full animate-pulse" />
+                                            <div className="h-4 w-3/4 bg-white/5 rounded-full animate-pulse" />
+                                        </div>
+                                    ) : state.aiInsight ? (
+                                        <motion.p 
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            className="text-[15px] font-medium text-white/70 leading-relaxed italic"
+                                        >
+                                            &quot;{state.aiInsight.text}&quot;
+                                        </motion.p>
+                                    ) : (
+                                        <p className="text-[14px] text-white/40 italic">Initializing environmental diagnostics...</p>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+                        </div>
 
-                                    <motion.button
-                                        whileHover={{ scale: 1.02, backgroundColor: "rgba(255, 255, 255, 0.05)" }}
-                                        whileTap={{ scale: 0.98 }}
-                                        onClick={handleScanActiveMap}
-                                        disabled={isScanningCenter}
-                                        className="py-3.5 px-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center gap-2 group/scan transition-all disabled:opacity-50"
-                                    >
-                                        <Search size={12} className={`text-white/60 ${isScanningCenter ? 'animate-spin' : ''}`} />
-                                        <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">
-                                            {isScanningCenter ? t('scanning') : t('scanExternal')}
-                                        </span>
-                                    </motion.button>
+                        {/* Action Buttons & Security Footnote */}
+                        <div className="space-y-10">
+                            <motion.button
+                                whileHover={{ scale: 1.02, y: -2 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => {
+                                    if (state.selectedFeature) {
+                                        const coords: [number, number] = state.selectedFeature.geometry.type === 'Point' 
+                                            ? [state.selectedFeature.geometry.coordinates[1], state.selectedFeature.geometry.coordinates[0]]
+                                            : [state.selectedFeature.geometry.coordinates[0][0][1], state.selectedFeature.geometry.coordinates[0][0][0]];
+                                        dispatch({ 
+                                            type: "OPEN_TREE_MODAL", 
+                                            payload: { 
+                                                coords,
+                                                district: state.selectedFeature.properties.district 
+                                            } 
+                                        });
+                                    }
+                                }}
+                                className="w-full py-6 rounded-[2.5rem] bg-emerald-500 text-black font-black uppercase tracking-[0.3em] text-[12px] shadow-[0_20px_40px_-10px_rgba(16,185,129,0.3)] hover:shadow-[0_25px_60px_-10px_rgba(16,185,129,0.5)] transition-all flex items-center justify-center gap-3 group/action"
+                            >
+                                {t('requestCanopySupport') || "Request Canopy Support"}
+                                <ArrowRight size={16} className="group-hover/action:translate-x-2 transition-transform" />
+                            </motion.button>
+
+                            <div className="flex flex-col items-center gap-4">
+                                <div className="flex items-center gap-3 opacity-20 hover:opacity-100 transition-opacity cursor-default">
+                                    <ShieldCheck size={12} className="text-white" />
+                                    <span className="text-[9px] font-black text-white uppercase tracking-[0.3em]">{t('dataSecure') || "Data is securely hashed via Eco-link protocols"}</span>
                                 </div>
+                                
+                                {/* Secondary Action (Scan) Simplified */}
+                                <button 
+                                    onClick={handleScanActiveMap}
+                                    disabled={isScanningCenter}
+                                    className="text-[10px] font-black text-white/20 hover:text-white/60 transition-colors flex items-center gap-2 uppercase tracking-widest disabled:opacity-50"
+                                >
+                                    <Search size={12} className={isScanningCenter ? 'animate-spin' : ''} />
+                                    {isScanningCenter ? t('scanning') : t('scanExternal')}
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* 2. RECOMMENDATION ENGINE */}
+                {/* 2. SUPPLEMENTARY TACTICAL STRATEGIES (IF CASE STUDY) */}
+                {['Calle de Castromonte', 'Calle de Alfonso XI'].includes(state.selectedFeature?.properties.name) && (
+                    <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="p-8 glass rounded-[2.5rem] border border-white/5 space-y-6"
+                    >
+                        <div className="flex items-center gap-3 mb-2">
+                             <Sparkles size={16} className="text-emerald-400" />
+                             <span className="text-[11px] font-black text-emerald-400 uppercase tracking-[0.2em]">{t('aiAdaptationStrategy') || "Tactical AI Support"}</span>
+                        </div>
+                        <div className="grid grid-cols-1 gap-3">
+                            {getAIStrategies(state.selectedFeature).map((item, idx) => (
+                                <div key={idx} className="flex items-center gap-4 px-6 py-4 bg-white/[0.02] border border-white/[0.05] rounded-[1.5rem] hover:bg-white/[0.04] transition-all">
+                                    <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                                       {item.type === 'water' ? <Droplets size={14} /> : item.type === 'infra' ? <Maximize2 size={14} /> : <TreePine size={14} />}
+                                    </div>
+                                    <div className="flex-1">
+                                        <span className="text-[11px] font-bold text-white uppercase tracking-tight">{t(item.text)}</span>
+                                        <div className="h-1 w-full bg-white/5 rounded-full mt-2 overflow-hidden">
+                                            <motion.div initial={{ width: 0 }} animate={{ width: item.prob }} className="h-full bg-emerald-500" />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </motion.div>
+                )}
+
+                {/* 3. RECOMMENDATION ENGINE (BELOW MAIN CARD) */}
                 <AnimatePresence>
                     {!state.isLoadingInsight && state.aiInsight?.recommendations && (
                         <motion.div 
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="space-y-4"
+                            className="space-y-4 pt-4"
                         >
-                             <div className="flex items-center gap-3 px-2">
-                                <Sparkles size={14} className="text-emerald-400" />
-                                <h4 className="text-[10px] font-black text-white/60 uppercase tracking-[0.3em]">{t('actionableIntelligence')}</h4>
+                             <div className="flex items-center gap-3 px-2 mb-2">
+                                <div className="w-1.5 h-4 bg-emerald-400/40 rounded-full" />
+                                <h4 className="text-[11px] font-black text-white/60 uppercase tracking-[0.4em]">{t('actionableIntelligence')}</h4>
                              </div>
                              
-                             <div className="grid grid-cols-1 gap-3 px-1">
+                             <div className="grid grid-cols-1 gap-3">
                                 {state.aiInsight.recommendations.map((rec, i) => (
                                     <RecommendationCard key={rec.id} rec={rec} delay={i * 0.1} />
                                 ))}

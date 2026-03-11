@@ -46,8 +46,8 @@ const SentinelMap = dynamic(() => import("@/components/maps/SentinelMap"), {
 export default function MainDashboard() {
   const { state, dispatch } = useApp();
   const { activeView, language } = state;
-  const { t, i18n } = useTranslation();
-  const isRTL = i18n.language === 'ar';
+  const { t } = useTranslation();
+  const isRTL = language === 'ar';
 
   // 1. Global Geolocation Sync
   useEffect(() => {
@@ -95,7 +95,7 @@ export default function MainDashboard() {
   const isSentinelView = activeView === "sentinel";
 
   return (
-    <div className="flex flex-col lg:flex-row h-screen w-screen overflow-hidden relative bg-[#010408] text-white">
+    <div className={`flex flex-col ${isRTL ? 'lg:flex-row-reverse' : 'lg:flex-row'} h-screen w-screen overflow-hidden relative bg-[#010408] text-white`}>
       {/* Premium Cinematic Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#010408] via-[#050c18] to-[#010408] pointer-events-none z-[-2]" />
       
@@ -107,7 +107,7 @@ export default function MainDashboard() {
       
       <Sidebar />
 
-      <main className="flex-1 flex flex-col lg:flex-row overflow-hidden relative z-10 pt-16 lg:pt-0 bg-transparent">
+      <main className={`flex-1 flex flex-col ${isRTL ? 'lg:flex-row-reverse' : 'lg:flex-row'} overflow-hidden relative z-10 pt-16 lg:pt-0 bg-transparent`}>
         <AnimatePresence mode="wait">
           {/* MAP-BASED VIEWS (Persistent Map instance) */}
           {(isMapView || isAI) && (
@@ -116,7 +116,7 @@ export default function MainDashboard() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex-1 flex flex-col lg:flex-row overflow-hidden h-full"
+              className={`flex-1 flex flex-col ${isRTL ? 'lg:flex-row-reverse' : 'lg:flex-row'} overflow-hidden h-full`}
             >
               <div className="flex-1 relative min-h-[400px]">
                 <EcoMap />

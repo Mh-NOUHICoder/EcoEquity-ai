@@ -59,3 +59,57 @@ export const findDistrictByCoords = (lat: number, lng: number, geojson: NDVIGeoJ
            lng >= Math.min(...lngs) && lng <= Math.max(...lngs);
   });
 };
+
+export function getAIStrategies(feature: NDVIFeature) {
+  const ndvi = feature.properties.ndvi;
+  const name = feature.properties.name.toLowerCase();
+  
+  const strategies = [];
+  
+  if (ndvi < 0.25) {
+    strategies.push(
+      { text: "criticalThermalMitigation", prob: "98%", type: "critical" },
+      { text: "emergencyTreeCanopy", prob: "94%", type: "urgent" },
+      { text: "highAlbedoPavement", prob: "89%", type: "infra" }
+    );
+  } else if (ndvi < 0.45) {
+    strategies.push(
+      { text: "heatIslandReduction", prob: "85%", type: "moderate" },
+      { text: "pocketParkIntegration", prob: "91%", type: "soft" },
+      { text: "smartIrrigation", prob: "87%", type: "water" }
+    );
+  } else {
+    strategies.push(
+      { text: "biodiversityCorridor", prob: "93%", type: "healthy" },
+      { text: "greenRoofNetwork", prob: "88%", type: "healthy" },
+      { text: "sustainableWaterRetention", prob: "95%", type: "water" }
+    );
+  }
+
+  // Specific overrides for key locations
+  if (name.includes("gran vía")) {
+    return [
+      { text: "verticalForest", prob: "96%", type: "high-tech" },
+      { text: "subterraneanCooling", prob: "92%", type: "infra" },
+      { text: "shadeOptimization", prob: "95%", type: "soft" }
+    ];
+  }
+  
+  if (name.includes("salamanca")) {
+    return [
+        { text: "historicFacade", prob: "94%", type: "heritage" },
+        { text: "permeablePlaza", prob: "88%", type: "water" },
+        { text: "greenTransit", prob: "97%", type: "transit" }
+    ];
+  }
+
+  if (name.includes("castromonte")) {
+    return [
+        { text: "soilSensorArray", prob: "98%", type: "data" },
+        { text: "microMisting", prob: "91%", type: "soft" },
+        { text: "shadowModulation", prob: "89%", type: "critical" }
+    ];
+  }
+
+  return strategies;
+}
