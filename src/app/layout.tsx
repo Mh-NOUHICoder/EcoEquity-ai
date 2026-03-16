@@ -10,17 +10,29 @@ export const metadata: Metadata = {
     "AI-powered urban heat island visualization for climate equity in European cities",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "EcoEquity AI",
+    startupImage: [
+      {
+        url: "/web-app-manifest-512x512.png",
+        media: "(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2)",
+      },
+    ],
   },
   formatDetection: {
     telephone: false,
   },
   icons: {
     icon: "/favicon.ico",
-    apple: "/ecoequity-ai.png",
+    apple: "/apple-icon.png",
+    shortcut: "/favicon.ico",
   },
   manifest: "/manifest.json",
+  other: {
+    "msapplication-TileColor": "#05080D",
+    "msapplication-TileImage": "/web-app-manifest-512x512.png",
+    "theme-color": "#10b981",
+  },
 };
 
 export const viewport = {

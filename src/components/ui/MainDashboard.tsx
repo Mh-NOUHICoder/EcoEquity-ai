@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "framer-motion";
 import Sidebar from "@/components/ui/Sidebar";
@@ -18,14 +18,23 @@ import EcoNeuralBackground from "@/components/ui/EcoNeuralBackground";
 // Map Loader Component for Translated Load states
 const MapLoader = ({ messageKey, color = "emerald" }: { messageKey: string; color?: "emerald" | "sky" }) => {
   const { t } = useTranslation();
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const colorClasses = color === "emerald" ? "border-emerald-500/30 border-t-emerald-400" : "border-sky-500/30 border-t-sky-400";
   const textClasses = color === "emerald" ? "text-white/30" : "text-slate-400";
   
+  // Force English or key on first render to match SSR
+  const displayLabel = mounted ? t(messageKey) : (messageKey === "initializingSectorLink" ? "Initializing Link..." : "Loading Hub...");
+
   return (
     <div className={`w-full h-full flex items-center justify-center ${color === "emerald" ? "bg-obsidian-950" : "bg-slate-900"}`}>
       <div className="flex flex-col items-center gap-3">
         <div className={`w-8 h-8 border-2 rounded-full animate-spin ${colorClasses}`} />
-        <p className={`text-sm font-mono tracking-widest uppercase ${textClasses}`}>{t(messageKey) || "Loading..."}</p>
+        <p className={`text-sm font-mono tracking-widest uppercase ${textClasses}`}>{displayLabel}</p>
       </div>
     </div>
   );

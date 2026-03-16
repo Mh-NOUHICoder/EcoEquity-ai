@@ -17,15 +17,22 @@ export default function RootLayoutWrapper({
 }) {
   const { state, dispatch } = useApp();
   const { t, i18n } = useTranslation();
+  const [isMounted, setIsMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
-    if (i18n.language) {
+    if (isMounted && i18n.language) {
       document.documentElement.dir = i18n.language === 'ar' ? 'rtl' : 'ltr';
       document.documentElement.lang = i18n.language;
     }
-  }, [i18n.language]);
+  }, [i18n.language, isMounted]);
 
   useEffect(() => {
+    if (!isMounted) return;
+    
     // Safety timeout: force clear loading after 6 seconds even if hydration hangs
     const safetyTimer = setTimeout(() => {
       if (state.isAppLoading) {
@@ -45,12 +52,16 @@ export default function RootLayoutWrapper({
       clearTimeout(timer);
       clearTimeout(safetyTimer);
     };
-  }, [dispatch, state.isHydrated, state.isAppLoading]);
+  }, [dispatch, state.isHydrated, state.isAppLoading, isMounted]);
+
+  // First render on client MUST match the server exactly.
+  // The server renders isAppLoading=true and 'en' language.
+  const loadingMessage = isMounted ? t('initializingSectorLink') : "Initializing Systems...";
 
   return (
     <>
-      <LoadingScreen isLoading={state.isAppLoading} message={t('initializingSectorLink')} />
-      {!state.isAppLoading && (
+      <LoadingScreen isLoading={state.isAppLoading} message={loadingMessage} />
+      {isMounted && !state.isAppLoading && (
         <>
           <GlobalHUDFx />
           <ClimateTicker />
