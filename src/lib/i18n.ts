@@ -1,9 +1,16 @@
+"use client";
+
 import i18n from 'i18next';
-import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import { translations } from './translations';
 
-if (typeof window !== 'undefined') {
+const isClient = typeof window !== 'undefined';
+
+if (isClient) {
+  // We import dynamically or use the standard import but only use it here
+  // react-i18next uses createContext which breaks RSC pre-rendering
+  const { initReactI18next } = require('react-i18next');
+
   i18n
     .use(LanguageDetector)
     .use(initReactI18next)

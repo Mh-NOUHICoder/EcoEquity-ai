@@ -12,7 +12,7 @@ import { useApp } from "@/context/AppContext";
 import { getTreeRequests } from "@/lib/supabase/supabase";
 import { CommunityReport } from "@/types";
 import { useTranslation } from "react-i18next";
-import React from "react";
+import { VoiceAgent } from "@/components/ui/VoiceAgent";
 import EcoNeuralBackground from "@/components/ui/EcoNeuralBackground";
 
 // Map Loader Component for Translated Load states
@@ -186,6 +186,19 @@ export default function MainDashboard() {
       </main>
 
       <TreeRequestModal />
+
+      {/* Gemini Live Agent — Geospacial Specialist */}
+      <VoiceAgent 
+        onMapNavigate={(lat, lng) => {
+          dispatch({ type: "SET_FOCUS_COORDS", payload: [lat, lng] });
+          dispatch({ type: "SET_VIEW", payload: "ai" });
+        }}
+        onHighlightZone={(lat, lng, severity, reason) => {
+          // You could add a specific high-intensity alert here
+          dispatch({ type: "SET_FOCUS_COORDS", payload: [lat, lng] });
+        }}
+        getMapCanvas={() => document.getElementById("main-map-container")}
+      />
     </div>
   );
 }

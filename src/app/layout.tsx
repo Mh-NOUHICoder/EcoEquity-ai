@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import React from "react";
 import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
 import RootLayoutWrapper from "@/components/layout/RootLayoutWrapper";
@@ -19,6 +20,7 @@ export const metadata: Metadata = {
     icon: "/favicon.ico",
     apple: "/ecoequity-ai.png",
   },
+  manifest: "/manifest.json",
 };
 
 export const viewport = {

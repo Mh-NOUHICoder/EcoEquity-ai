@@ -274,7 +274,7 @@ export default function AIInsightsPanel() {
                         <span className="text-[9px] font-black text-white/40 uppercase tracking-[0.3em]">{t('selectLocationForAnalysis') || "Select Location for Analysis"}</span>
                     </div>
                     <p className="text-[12px] lg:text-[14px] font-medium text-white/50 max-w-[320px] leading-relaxed mx-auto italic">
-                        &quot;{t('standbyMessage') || "Environmental neural network standby. Select a tactical sector from the map to initiate high-fidelity deep-scan diagnostics."}&quot;
+                        &quot;{t('standbyMessage') || "Environmental neural network standby. Select a tactical sector to initiate deep-scan analysis."}&quot;
                     </p>
                 </div>
 
@@ -296,7 +296,7 @@ export default function AIInsightsPanel() {
                         )}
                         <Search size={22} className={`text-emerald-400 ${isScanningCenter ? 'animate-spin' : 'group-hover/scan:rotate-12 transition-transform'}`} />
                         <span className="text-[12px] font-black text-emerald-400 uppercase tracking-[0.4em]">
-                            {isScanningCenter ? t('mappingData') || "Mapping Core Data" : t('scanActiveMap') || "Scan Map Sector"}
+                            {isScanningCenter ? t('mappingData') || "Mapping Core Data" : t('scanActiveMap') || "Scan Active Map"}
                         </span>
                     </motion.button>
                     
@@ -318,141 +318,140 @@ export default function AIInsightsPanel() {
                 key="active"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="space-y-6"
+                className="space-y-10 relative"
               >
-                {/* 1. UNIFIED DISTRICT ANALYSIS REPORT */}
-                <div className="relative overflow-hidden group">
-                    {/* Decorative Background Elements */}
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/2 transition-colors" />
-                    <div className="absolute -bottom-20 -left-20 w-48 h-48 bg-cyan-500/5 blur-[80px] rounded-full transition-colors" />
+                {/* Decorative Background Elements (Integrated into Panel) */}
+                <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/5 blur-[120px] rounded-full -translate-y-1/3 translate-x-1/4 pointer-events-none" />
+                <div className="absolute bottom-40 -left-20 w-64 h-64 bg-cyan-500/5 blur-[100px] rounded-full pointer-events-none" />
 
-                    <div className="relative z-10">
-                        {/* Header Label */}
-                        <div className="flex items-center gap-3 mb-8">
-                            <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                                <Activity size={14} className="text-emerald-400" />
-                            </div>
-                            <span className="text-[11px] font-black text-emerald-400 uppercase tracking-[0.4em]">{t('districtEnvironmentalAnalysis') || "District Environmental Analysis"}</span>
-                            
-                            {/* Close Button Integrated */}
-                            <button 
-                                onClick={() => dispatch({ type: "SELECT_FEATURE", payload: null })}
-                                className="ml-auto p-2.5 rounded-2xl bg-white/5 border border-white/10 text-white/40 hover:text-red-400 hover:bg-red-400/10 hover:border-red-400/30 transition-all group/close"
-                                title={t('clearSelection') || "Clear Selection"}
-                            >
-                                <X size={16} className="group-hover/close:rotate-90 transition-transform" />
-                            </button>
+                {/* 1. UNIFIED DISTRICT ANALYSIS REPORT (FLATTENED) */}
+                <div className="relative z-10 space-y-8">
+                    {/* Header Label */}
+                    <div className="flex items-center gap-3">
+                        <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+                            <Activity size={16} className="text-emerald-400" />
                         </div>
+                        <span className="text-[12px] font-black text-white uppercase tracking-[0.5em]">{t('districtEnvironmentalAnalysis') || "District Environmental Analysis"}</span>
+                        
+                        {/* Close Button Integrated */}
+                        <button 
+                            onClick={() => dispatch({ type: "SELECT_FEATURE", payload: null })}
+                            className="ml-auto p-3 rounded-2xl bg-white/5 border border-white/10 text-white/40 hover:text-red-400 hover:bg-red-400/10 hover:border-red-400/30 transition-all group/close"
+                            title={t('clearSelection') || "Clear Selection"}
+                        >
+                            <X size={18} className="group-hover/close:rotate-90 transition-transform" />
+                        </button>
+                    </div>
 
-                        {/* Location Header */}
-                        <div className="mb-8">
-                            <h3 className="text-4xl font-black text-white uppercase tracking-tighter leading-none mb-4 group-hover:text-emerald-400/90 transition-colors">
-                                {state.selectedFeature.properties.name}
-                            </h3>
+                    {/* Location Header */}
+                    <div className="py-2">
+                        <h3 className="text-5xl font-black text-white uppercase tracking-tighter leading-none mb-4 group-hover:text-emerald-400/90 transition-colors">
+                            {state.selectedFeature.properties.name}
+                        </h3>
+                        <div className="flex items-center gap-3">
+                            <span className="text-[11px] font-black text-white/30 uppercase tracking-[0.3em]">{state.selectedFeature.properties.district}</span>
+                        </div>
+                    </div>
+
+                    {/* Tactical Metrics Integrated Grid */}
+                    <div className="grid grid-cols-3 gap-6 py-10 border-y border-white/[0.08] bg-white/[0.01] rounded-3xl px-2">
+                        <div className="space-y-2 text-center lg:text-left">
+                            <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] block">{t('ndviIndex') || "NDVI Index"}</span>
+                            <div className="text-3xl font-mono font-black text-emerald-400 drop-shadow-[0_0_20px_rgba(16,185,129,0.4)]">
+                                {state.selectedFeature.properties.ndvi.toFixed(4)}
+                            </div>
+                        </div>
+                        <div className="space-y-2 text-center lg:text-left border-x border-white/10 px-6">
+                            <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] block">{t('residents') || "Residents"}</span>
+                            <div className="text-3xl font-mono font-black text-white">
+                                {(state.selectedFeature.properties.population / 1000).toFixed(1)}k
+                            </div>
+                        </div>
+                        <div className="space-y-2 text-center lg:text-left">
+                            <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] block">{t('surfaceEnergy') || "Surface Energy"}</span>
+                            <div className="text-3xl font-mono font-black text-amber-400 drop-shadow-[0_0_20px_rgba(251,191,36,0.4)]">
+                                {state.selectedFeature.properties.avgTemp.toFixed(1)}°C
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* AI Insight Narrative Card */}
+                    <div className="relative">
+                        <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-3">
-                                <div className="px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-2 shadow-inner">
-                                    <CheckCircle2 size={12} className="text-emerald-400" />
-                                    <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">{t('stableStatus') || "Stable Status"}</span>
-                                </div>
-                                <div className="h-1 w-1 rounded-full bg-white/10" />
-                                <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">{state.selectedFeature.properties.district}</span>
-                            </div>
-                        </div>
-
-                        {/* Tactical Metrics Integrated Grid */}
-                        <div className="grid grid-cols-3 gap-6 mb-10 py-8 border-y border-white/5 bg-white/[0.01]">
-                            <div className="space-y-1.5 text-center lg:text-left">
-                                <span className="text-[9px] font-black text-white/20 uppercase tracking-widest block">{t('ndviIndex') || "NDVI Index"}</span>
-                                <div className="text-2xl font-mono font-black text-emerald-400 drop-shadow-[0_0_15px_rgba(16,185,129,0.3)]">
-                                    {state.selectedFeature.properties.ndvi.toFixed(4)}
-                                </div>
-                            </div>
-                            <div className="space-y-1.5 text-center lg:text-left border-x border-white/5 px-6">
-                                <span className="text-[9px] font-black text-white/20 uppercase tracking-widest block">{t('residents') || "Residents"}</span>
-                                <div className="text-2xl font-mono font-black text-white">
-                                    {(state.selectedFeature.properties.population / 1000).toFixed(1)}k
-                                </div>
-                            </div>
-                            <div className="space-y-1.5 text-center lg:text-left">
-                                <span className="text-[9px] font-black text-white/20 uppercase tracking-widest block">{t('surfaceEnergy') || "Surface Energy"}</span>
-                                <div className="text-2xl font-mono font-black text-amber-400 drop-shadow-[0_0_15px_rgba(251,191,36,0.3)]">
-                                    {state.selectedFeature.properties.avgTemp.toFixed(1)}°C
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* AI Insight Narrative Card */}
-                        <div className="mb-10 relative">
-                            <div className="flex items-center gap-3 mb-5">
-                                <Sparkles size={14} className="text-emerald-400" />
-                                <span className="text-[11px] font-black text-emerald-400/80 uppercase tracking-[0.2em]">{t('ecoInsights') || "Eco Insights"}</span>
+                                <Sparkles size={16} className="text-emerald-400" />
+                                <span className="text-[13px] font-black text-emerald-400/90 uppercase tracking-[0.3em]">{t('ecoInsights') || "Eco Insights"}</span>
                             </div>
                             
-                            <div className="relative py-4 group/insight">
-                                <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-emerald-500/40 to-transparent" />
-                                <AnimatePresence mode="wait">
-                                    {state.isLoadingInsight ? (
-                                        <div className="space-y-3">
-                                            <div className="h-4 w-full bg-white/5 rounded-full animate-pulse" />
-                                            <div className="h-4 w-5/6 bg-white/5 rounded-full animate-pulse" />
-                                            <div className="h-4 w-3/4 bg-white/5 rounded-full animate-pulse" />
-                                        </div>
-                                    ) : state.aiInsight ? (
-                                        <motion.p 
-                                            initial={{ opacity: 0 }}
-                                            animate={{ opacity: 1 }}
-                                            className="text-[15px] font-medium text-white/70 leading-relaxed italic"
-                                        >
-                                            &quot;{state.aiInsight.text}&quot;
-                                        </motion.p>
-                                    ) : (
-                                        <p className="text-[14px] text-white/40 italic">Initializing environmental diagnostics...</p>
-                                    )}
-                                </AnimatePresence>
+                            <div className="px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-2.5 shadow-inner">
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.6)]" />
+                                <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">{t('stableStatus') || "Stable Status"}</span>
                             </div>
                         </div>
+                        
+                        <div className="relative py-6 group/insight">
+                            <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-emerald-500/60 to-transparent rounded-full shadow-[0_0_15px_rgba(16,185,129,0.2)]" />
+                            <AnimatePresence mode="wait">
+                                {state.isLoadingInsight ? (
+                                    <div className="space-y-4 pl-6">
+                                        <div className="h-4 w-full bg-white/5 rounded-full animate-pulse" />
+                                        <div className="h-4 w-5/6 bg-white/5 rounded-full animate-pulse" />
+                                        <div className="h-4 w-3/4 bg-white/5 rounded-full animate-pulse" />
+                                    </div>
+                                ) : state.aiInsight ? (
+                                    <motion.p 
+                                        initial={{ opacity: 0, x: 10 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        className="text-[17px] font-medium text-white/80 leading-relaxed italic pl-6"
+                                    >
+                                        &quot;{state.aiInsight.text}&quot;
+                                    </motion.p>
+                                ) : (
+                                    <p className="text-[16px] text-white/40 italic pl-6">Initializing environmental diagnostics...</p>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    </div>
 
-                        {/* Action Buttons & Security Footnote */}
-                        <div className="space-y-10">
-                            <motion.button
-                                whileHover={{ scale: 1.02, y: -2 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={() => {
-                                    if (state.selectedFeature) {
-                                        const coords: [number, number] = state.selectedFeature.geometry.type === 'Point' 
-                                            ? [state.selectedFeature.geometry.coordinates[1], state.selectedFeature.geometry.coordinates[0]]
-                                            : [state.selectedFeature.geometry.coordinates[0][0][1], state.selectedFeature.geometry.coordinates[0][0][0]];
-                                        dispatch({ 
-                                            type: "OPEN_TREE_MODAL", 
-                                            payload: { 
-                                                coords,
-                                                district: state.selectedFeature.properties.district 
-                                            } 
-                                        });
-                                    }
-                                }}
-                                className="w-full py-6 rounded-[2.5rem] bg-emerald-500 text-black font-black uppercase tracking-[0.3em] text-[12px] shadow-[0_20px_40px_-10px_rgba(16,185,129,0.3)] hover:shadow-[0_25px_60px_-10px_rgba(16,185,129,0.5)] transition-all flex items-center justify-center gap-3 group/action"
-                            >
-                                {t('requestCanopySupport') || "Request Canopy Support"}
-                                <ArrowRight size={16} className="group-hover/action:translate-x-2 transition-transform" />
-                            </motion.button>
+                    {/* Action Buttons & Security Footnote */}
+                    <div className="space-y-12 pt-4">
+                        <motion.button
+                            whileHover={{ scale: 1.02, y: -2 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => {
+                                if (state.selectedFeature) {
+                                    const coords: [number, number] = state.selectedFeature.geometry.type === 'Point' 
+                                        ? [state.selectedFeature.geometry.coordinates[1], state.selectedFeature.geometry.coordinates[0]]
+                                        : [state.selectedFeature.geometry.coordinates[0][0][1], state.selectedFeature.geometry.coordinates[0][0][0]];
+                                    dispatch({ 
+                                        type: "OPEN_TREE_MODAL", 
+                                        payload: { 
+                                            coords,
+                                            district: state.selectedFeature.properties.district 
+                                        } 
+                                    });
+                                }
+                            }}
+                            className="w-full py-7 rounded-[3rem] bg-emerald-500 text-black font-black uppercase tracking-[0.4em] text-[13px] shadow-[0_25px_50px_-12px_rgba(16,185,129,0.4)] hover:shadow-[0_35px_70px_-12px_rgba(16,185,129,0.6)] transition-all flex items-center justify-center gap-4 group/action"
+                        >
+                            {t('requestCanopySupport') || "Request Canopy Support"}
+                            <ArrowRight size={20} className="group-hover/action:translate-x-3 transition-transform" />
+                        </motion.button>
 
-                            <div className="flex flex-col items-center gap-4">
-                                <div className="flex items-center gap-3 opacity-20 hover:opacity-100 transition-opacity cursor-default">
-                                    <ShieldCheck size={12} className="text-white" />
-                                    <span className="text-[9px] font-black text-white uppercase tracking-[0.3em]">{t('dataSecure') || "Data is securely hashed via Eco-link protocols"}</span>
-                                </div>
-                                
-                                {/* Secondary Action (Scan) Simplified */}
-                                <button 
-                                    onClick={handleScanActiveMap}
-                                    disabled={isScanningCenter}
-                                    className="text-[10px] font-black text-white/20 hover:text-white/60 transition-colors flex items-center gap-2 uppercase tracking-widest disabled:opacity-50"
-                                >
-                                    <Search size={12} className={isScanningCenter ? 'animate-spin' : ''} />
-                                    {isScanningCenter ? t('scanning') : t('scanExternal')}
-                                </button>
+                        <div className="flex flex-col items-center gap-5">
+                            <div className="flex items-center gap-3.5 opacity-30 hover:opacity-100 transition-opacity cursor-default">
+                                <ShieldCheck size={14} className="text-white" />
+                                <span className="text-[10px] font-black text-white uppercase tracking-[0.4em]">{t('dataSecure') || "Data is securely hashed via Eco-link protocols"}</span>
                             </div>
+                            
+                            <button 
+                                onClick={handleScanActiveMap}
+                                disabled={isScanningCenter}
+                                className="text-[11px] font-black text-white/20 hover:text-white/70 transition-colors flex items-center gap-3 uppercase tracking-widest disabled:opacity-50"
+                            >
+                                <Search size={14} className={isScanningCenter ? 'animate-spin' : ''} />
+                                {isScanningCenter ? t('scanning') : t('scanExternal')}
+                            </button>
                         </div>
                     </div>
                 </div>

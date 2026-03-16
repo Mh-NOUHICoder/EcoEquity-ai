@@ -1,104 +1,90 @@
 <div align="center">
   <img src="public/ecoequity-ai.png" alt="EcoEquity AI Logo" width="400" height="auto" />
   <h1>🌿 EcoEquity AI</h1>
-  <p><strong>Advanced Urban Heat & Climate Intelligence Platform</strong></p>
-  <p><em>Orchestrating satellite telemetry, AI synthesis, and community action to resolve urban thermal inequity.</em></p>
+  <p><strong>Advanced Geospatial AI & Multimodal Climate Intelligence</strong></p>
+  <p><em>Orchestrating satellite telemetry, real-time vision, and voice-driven AI to resolve urban thermal inequity.</em></p>
 
   <p>
     <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-14-black?logo=next.js" alt="Next.js"></a>
     <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-Ready-blue?logo=typescript" alt="TypeScript"></a>
     <a href="https://tailwindcss.com/"><img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?logo=tailwind-css&logoColor=white" alt="Tailwind CSS"></a>
-    <a href="https://supabase.com/"><img src="https://img.shields.io/badge/Supabase-Database-3ECF8E?logo=supabase&logoColor=white" alt="Supabase"></a>
-    <a href="https://deepmind.google/technologies/gemini/"><img src="https://img.shields.io/badge/AI-Google_Gemini-4285F4?logo=google" alt="Google Gemini"></a>
+    <a href="https://cloud.google.com/vertex-ai"><img src="https://img.shields.io/badge/Google_Cloud-Vertex_AI-4285F4?logo=google-cloud&logoColor=white" alt="Vertex AI"></a>
+    <a href="https://deepmind.google/technologies/gemini/"><img src="https://img.shields.io/badge/AI-Gemini_1.5_Flash-4285F4?logo=google-gemini&logoColor=white" alt="Gemini 1.5 Flash"></a>
     <a href="https://www.sentinel-hub.com/"><img src="https://img.shields.io/badge/Satellite-Sentinel_Hub-004B87" alt="Sentinel Hub"></a>
   </p>
 </div>
 
 <br />
 
-## 📖 Overview
-
-**EcoEquity AI** is a cutting-edge environmental intelligence platform designed to combat the "Urban Heat Island" effect. By synthesizing real-time satellite telemetry with hyper-local user reports, the platform identifies thermal stress zones and facilitates direct community-led reforestation efforts.
-
-Designed for the **EU-CODE WEEK Hackathon**, EcoEquity AI transforms complex Earth Observation data into actionable urban planning intelligence.
+## 🏆 Gemini Live Agent Challenge
+**EcoEquity AI** features a state-of-the-art **Gemini Live Agent** implementation, specifically engineered for the [Gemini Live Agent Challenge](https://ai.google.dev/competition). We've transformed the platform from a static dashboard into a **Multimodal Geospatial AI Specialist** that can see, hear, and interact with the planet's data in real-time.
 
 ---
 
-## 🛰️ The Data Journey: From Orbit to Action
+## 🤖 The EcoEquity Intelligent Agent
+The heart of the platform is a high-performance **Geospatial AI Assistant** powered by **Gemini 1.5 Flash** on **Google Cloud Vertex AI**. This isn't just a chatbot; it's a multimodal companion that lives inside the map.
 
-EcoEquity AI bridges the gap between aerospace telemetry and hyper-local urban advocacy. Our platform follows a specialized, four-stage lifecycle to transform raw spectral data into meaningful climate justice.
-
-1.  **Space-Layer Acquisition** 🛰️
-    The journey begins in low Earth orbit. We capture **high-resolution multispectral imagery** directly from the **EU Copernicus Sentinel-2 satellite constellation**. This raw environmental data provides the foundation for our global monitoring capabilities, ensuring an objective, un-biased view of urban ecosystems in real-time.
-
-2.  **Neural Core Processing** 🧠
-    Once captured, the data enters our **AI-driven Neural Core**. Advanced algorithms perform deep spectral analysis to extract:
-    *   **Thermal Anomalies:** Identifying precise "Heat Islands" where temperatures exceed safe urban baselines.
-    *   **NDVI (Vegetation) Indices:** Quantifying the health and density of canopy cover to locate "Green Deserts."
-
-3.  **Community Validation** 👥
-    Data is only as powerful as the lived experience of the people it represents. Through our **Community Reports** feature, local residents act as ground-level sensors—validating AI predictions and reporting real-world thermal stress that satellites might miss. This fuses "top-down" technology with "bottom-up" human intelligence.
-
-4.  **Strategic Intervention** 🎯
-    The final output is a targeted **AI Strategy**. Our system synthesizes all data layers to generate actionable, site-specific solutions:
-    *   **Canopy Deployment Protocols:** Precise locations for new tree planting.
-    *   **Tactical Cooling Stations:** Optimal placement for temporary heat relief.
-    *   **Policy Advocacy Maps:** Data-backed evidence for urban planning reform.
+### 🌟 Core Live Capabilities:
+*   **🎙️ Natural Voice Interaction:** Low-latency, full-duplex voice interface using Web Speech API + SpeechSynthesis for a hands-free geospatial exploration experience.
+*   **👁️ Multimodal Computer Vision:** The agent can **"see" your screen**. It captures real-time frames from the map canvas to analyze NDVI (Vegetation) indices and Urban Heat Islands (UHI) directly from your current view.
+*   **🛠️ Tool Use & Function Calling:** The agent has direct control over the platform's UI. It can autonomously:
+    *   `move_map_to_location(lat, lng)`: Navigate the map to areas of concern.
+    *   `highlight_risk_zone(lat, lng, severity)`: Flag thermal stress hotspots based on visual analysis.
+*   **🌐 Google Search Grounding:** Real-time verification of climate policies and environmental reports via Vertex AI Grounding to ensure data accuracy.
+*   **⚡ Streaming Intelligence:** Server-Sent Events (SSE) enable real-time streaming of AI reasoning and function calls for an "instant" feel.
 
 ---
 
-## ✨ Key Features & Real-Time Intelligence
+## 🛰️ Ecosystem Overview
 
-### 📡 Sentinel-Enabled Satellite HUD
-A premium aerospace-grade interface (`SentinelMap`) that provides direct access to **Sentinel Hub STAC** data.
+EcoEquity AI bridges the gap between aerospace telemetry and hyper-local urban advocacy. Our platform follows a specialized, five-stage lifecycle:
+
+1.  **Space-Layer Acquisition** 🛰️  
+    Capturing high-resolution multispectral imagery directly from the **EU Copernicus Sentinel-2** constellation via Sentinel Hub.
+2.  **Neural Core Processing** 🧠  
+    Extracting **Thermal Anomalies** and **NDVI Indices** from spectral data.
+3.  **Multimodal Synthesis** 🤖  
+    The **EcoEquity Agent** analyzes the visualized data using Gemini visibility, identifying "Social Equity Gaps" where low vegetation meets high population density.
+4.  **Community Validation** 👥  
+    Local residents validate AI predictions through high-fidelity field reports.
+5.  **Strategic Action** 🎯  
+    Generating site-specific AI reforestation protocols and cooling station deployments.
+
+---
+
+## ✨ Features & Visual Interface
+
+### 📡 Satellite HUD (Sentinel Hub)
+A premium aerospace-grade interface providing direct access to **Sentinel Hub STAC** data.
 - **Dynamic STAC Inspection:** Live metadata streams for Sentinel-2 collections.
-- **Spectrum Analysis:** Real-time NDVI (Normalized Difference Vegetation Index) visualization using spectral bands.
-- **Global Sector Status:** Command-center telemetry indicating elevation, atmospheric purity, and sector stability.
+- **Real-time Spectral Overlay:** Immediate NDVI visualization on the flight path.
 
-### 🗺️ Tactical Heat Mapping
-An interactive GeoJSON-powered layer (`EcoMap`) rendering district-level vulnerability.
-- **District Polygons:** Detailed spatial overlays with custom tooltips showing NDVI indices for every urban sector.
-- **Spatial Focus Coordination:** Unified "Fly-to" logic that synchronizes specific coordinates between the community feed and satellite HUD.
+### 🗺️ Tactical Tactical Analytics
+- **Live Vector Layers:** District-level polygons showing vulnerability scores.
+- **Unified Geolocation Sync:** Cross-component coordinate broadcast (Dashboard ↔ Agent ↔ Map).
 
-### 🤖 Neural Core (AI Synthesis)
-Integrated **Google Gemini Pro** engine for deep ecological narrative processing.
-- **Automated District Analysis:** One-click synthesis of population density, vegetation health, and thermal stress.
-- **Actionable Planning:** Provides specific, AI-generated reforestation protocols tailored to each district's unique data signature.
-
-### 📍 Hyper-Local Telemetry & Geolocation
-- **Unified Geolocation Sync:** Automatic, high-accuracy user location detection that synchronizes the entire platform's tactical views (Maps, Dashboard, AI).
-- **Field Feed Engagement:** Real-time community reporting system where residents upload thermal stress observations directly into the global data stream.
-- **Mitigation Request Protocol:** A streamlined system for requesting immediate canopy restoration in "Critical" zones.
+### 🎙️ The Voice Command Center
+- **Floating Waves UI:** A premium Glassmorphism interface for the Gemini Live Agent.
+- **Visual Feedback:** Real-time user transcript and AI response visualization.
+- **Action Dashboard:** See the agent "thinking" and executing UI commands (map moves, highlights).
 
 ---
 
 ## 🏗️ Technical Architecture
 
-EcoEquity AI follows a modular, reactive architecture designed for high-performance geospatial rendering.
-
-### 1. Global State & Context Hub
-We utilize a unified **React Context + useReducer** architecture (`AppContext.tsx`) to manage the platform's "Neural Network." This enables real-time synchronization of:
-- **Spatial Telemetry:** Active world coordinates and map zoom levels.
-- **Tactical Focus:** Cross-component coordinate broadcast (e.g., clicking a report focuses the Satellite HUD).
-- **Environmental State:** Global NDVI averages and thermal alert levels.
-
-### 2. The Data Stack
+### The Live Agent Stack
 | Layer | Technology | Role |
 |-------|-----------|-------------|
-| **Framework** | Next.js 14 | Orchestration of API routes and reactive client views. |
-| **Mapping Engine** | Leaflet / React-Leaflet | High-performance spatial rendering of complex GeoJSON datasets. |
-| **Motion/FX** | Framer Motion | Powers the "Glassmorphism" UI and fluid aerospace-grade transitions. |
-| **Satellite Integration** | Sentinel Hub STAC API | Powers the deep-space telemetry and spectral data streams. |
-| **AI Processing** | Google Gemini API | Synthesizes raw geospatial data into human-readable planning reports. |
-| **Persistence** | Supabase | Real-time storage for community reports and reforestation requests. |
+| **AI SDK** | `@google-cloud/vertexai` | Primary infrastructure for Vision/Voice/Tools. |
+| **Logic Core** | `api/voice-query/route.ts` | SSE Streaming proxy with multi-model fallback. |
+| **Voice Interface** | Web Speech API | Client-side transcription and text-to-speech. |
+| **Vision Feed** | Canvas API | Captures 1080p frames of the map for AI analysis. |
+| **Function Bridge** | TypeScript Hooks | Maps AI function calls to platform UI actions. |
+| **Persistence** | Supabase | Storage for reports and community equity metrics. |
 
 ---
 
-## 🚀 Deployment & Local Operations
-
-### Prerequisites
-- Node.js v18.17+
-- API access keys for Google Gemini & Sentinel Hub.
+## 🚀 Deployment & Configuration
 
 ### 1. Initialization
 ```bash
@@ -107,22 +93,24 @@ cd eco-equity-ai
 npm install
 ```
 
-### 2. Intelligence Link Configuration
-Create `.env.local` and configure your uplinks:
+### 2. Configure Environment `.env.local`
 ```env
-# AI Intelligence Key
-NEXT_PUBLIC_GEMINI_API_KEY="your_key"
+# Vertex AI (Primary - For Live Agent Challenge)
+VERTEX_AI_PROJECT_ID="ecoequity-ai"
+VERTEX_AI_LOCATION="us-central1"
+GOOGLE_APPLICATION_CREDENTIALS="/path/to/service-account.json"
 
-# Sentinel Hub Gateway (Required for Satellite HUD)
+# Google AI Studio (Fallback)
+NEXT_PUBLIC_GEMINI_API_KEY="AIza..."
+
+# Satellite & Database
 SENTINEL_CLIENT_ID="your_id"
 SENTINEL_CLIENT_SECRET="your_secret"
-
-# Persistence Gateway
-NEXT_PUBLIC_SUPABASE_URL="your_url"
-NEXT_PUBLIC_SUPABASE_ANON_KEY="your_key"
+NEXT_PUBLIC_SUPABASE_URL="..."
+NEXT_PUBLIC_SUPABASE_ANON_KEY="..."
 ```
 
-### 3. Launch Core Systems
+### 3. Run Development Core
 ```bash
 npm run dev
 ```
@@ -130,8 +118,6 @@ npm run dev
 ---
 
 ## 🌍 Spatial Data Interpretation Baseline
-
-The platform utilizes a scientific NDVI baseline to categorize urban health:
 
 | Index | Category | Thermal Impact | Tactical Priority |
 |:-----:|:---------|:---------------|:------------------|
@@ -141,25 +127,8 @@ The platform utilizes a scientific NDVI baseline to categorize urban health:
 
 ---
 
-## 📂 Intelligence Repository Structure
-
-```text
-src/
-├── app/              # Tactical Routing & API Gateways
-│   ├── api/sentinel/ # Satellite STAC proxy logic
-│   └── debug/        # Deep-stream protocol inspectors
-├── components/       
-│   ├── maps/         # Spatial HUDs (SentinelMap, EcoMap)
-│   └── ui/           # Intelligence Displays (Dashboard, AI Panel, Feed)
-├── context/          # The Platform's Neural Core (Global State)
-├── lib/              # Spectral Analysis & AI Logic
-└── types/            # Protocol & Data Stream Definitions
-```
-
----
-
 <div align="center">
-  <b>EcoEquity AI: Engineering a cooler, more equitable urban future through aerospace intelligence.</b>
+  <b>EcoEquity AI: Engineering a cooler, more equitable urban future through aerospace intelligence and Gemini Multimodal Live.</b>
 </div>
 
 --- 

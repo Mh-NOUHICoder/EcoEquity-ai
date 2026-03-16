@@ -62,7 +62,19 @@ export const NDVI_GEOJSON: NDVIGeoJSON = {
         avgTemp: 32.1
       },
       geometry: { type: "Point", coordinates: [-3.680, 40.430] }
-    }
+    },
+    {
+      type: "Feature",
+      properties: {
+        name: "Calle de Faustino Osorio",
+        district: "Chamartín",
+        ndvi: 0.8116,
+        population: 10900,
+        treeCount: 840,
+        avgTemp: 27.5
+      },
+      geometry: { type: "Point", coordinates: [-3.675, 40.455] }
+    },
   ],
 };
 
