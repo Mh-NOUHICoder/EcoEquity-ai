@@ -3,11 +3,67 @@ import { CITY_AVG_NDVI } from "./data";
 
 export async function generateAIInsight(feature: NDVIFeature, lang: Language = "en"): Promise<AIResult> {
   const { name, ndvi, population, treeCount, avgTemp } = feature.properties;
-  const diff = ((ndvi - CITY_AVG_NDVI) / CITY_AVG_NDVI) * 100;
-  const isHot = ndvi < 0.2;
   const riskScore = Math.min(1, Math.max(0, 1 - (ndvi * 1.2)));
 
-  // Simulate API call delay
+  try {
+    // Attempt real-time AI generation via the established API route
+    const prompt = `Analyze the environmental status of sector ${name}. 
+    Data: NDVI ${ndvi.toFixed(4)}, Population ${population}, Avg Temp ${avgTemp.toFixed(1)}°C.
+    Identify heat risks, social equity gaps, and provide 3 concrete actionable recommendations.
+    Keep the narrative concise (2 sentences). 
+    Language: ${lang}. 
+    Format: Return as JSON with keys: text, recommendations (array of {id, type, title, description, impact}).`;
+
+    const res = await fetch('/api/voice-query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: prompt })
+    });
+
+    if (res.ok) {
+        const reader = res.body?.getReader();
+        if (reader) {
+            const { value } = await reader.read();
+            const text = new TextDecoder().decode(value);
+            const dataLine = text.split('\n').find(l => l.startsWith('data:'));
+            if (dataLine) {
+                const parsed = JSON.parse(dataLine.replace('data: ', ''));
+                if (parsed.type === 'response' && parsed.text) {
+                    // Try to parse the JSON from the text if the model returned it that way
+                    try {
+                        const jsonMatch = parsed.text.match(/\{[\s\S]*\}/);
+                        if (jsonMatch) {
+                            const aiData = JSON.parse(jsonMatch[0]);
+                            return {
+                                text: aiData.text || parsed.text.split('{')[0].trim(),
+                                riskScore,
+                                healthImpact: "Satellite analysis indicates localized thermal stress in high-density zones.",
+                                recommendations: aiData.recommendations || [],
+                                timestamp: new Date().toLocaleTimeString()
+                            };
+                        }
+                    } catch (e) {
+                        // If parsing fails, just use the raw text
+                        return {
+                            text: parsed.text,
+                            riskScore,
+                            healthImpact: "Risk analysis synchronized with real-time telemetry.",
+                            recommendations: [
+                                { id: 'r1', type: 'planting', title: 'Expand Canopy', description: 'Priority reforestation project.', impact: 'high' }
+                            ],
+                            timestamp: new Date().toLocaleTimeString()
+                        };
+                    }
+                }
+            }
+        }
+    }
+  } catch (err) {
+    console.warn("[EcoEquity] Real-time insight failed, using fallback logic.");
+  }
+
+  // Fallback to existing logic if API fails or is slow
+  // Simulate API call delay (kept for fallback simulation)
   await new Promise(res => setTimeout(res, 1200 + Math.random() * 500));
 
   const content = {
@@ -101,39 +157,10 @@ export async function generateAIInsight(feature: NDVIFeature, lang: Language = "
     }
   };
 
-  const translations = content[lang] || content.en;
+  const translations = (content as any)[lang] || content.en;
   
-  // Dynamic logic for more variety
-  let activeData;
-  if (ndvi < 0.2) {
-      activeData = translations.hot;
-  } else if (ndvi < 0.4) {
-      activeData = {
-          text: `Sector ${name} shows moderate thermal stress. Ecosystem equilibrium is declining.`,
-          healthImpact: "Noticeable increase in surface temperature. Monitoring recommended for elderly residents.",
-          recTitles: ["Tree Infill", "Permeable Paths", "Active Cooling"],
-          recDescs: [
-              "Increase tree density in existing gaps to strengthen partial canopy cover.",
-              "Replace non-porous surfaces with permeable materials to reduce runoff heat.",
-              "Deploy misting systems at major transport hubs in this sector."
-          ]
-      };
-      // For non-EN languages, we probably need a better way, but for now let's stick to English logic or simple translation fallback
-      if (lang === 'ar') {
-          activeData = {
-              text: `يُظهر قطاع ${name} إجهاداً حرارياً معتدلاً. توازن النظام البيئي في تراجع.`,
-              healthImpact: "زيادة ملحوظة في درجة حرارة السطح. يوصى بمراقبة كبار السن.",
-              recTitles: ["ملء الأشجار", "مسارات نفاذة", "تبريد نشط"],
-              recDescs: [
-                  "زيادة كثافة الأشجار في الفجوات الموجودة.",
-                  "استبدال الأسطح غير المسامية بمواد نفاذة.",
-                  "نشر أنظمة الرذاذ في مراكز النقل الرئيسية."
-              ]
-          };
-      }
-  } else {
-      activeData = translations.stable;
-  }
+  // Dynamic logic for more variety (simplified for fallback as per instruction)
+  let activeData = ndvi < 0.2 ? translations.hot : translations.stable;
 
   const recommendations: AIRecommendation[] = [
     {

@@ -12,7 +12,7 @@ import { useTranslation } from "react-i18next";
 
 const NeuralSidebar: React.FC = () => {
   const { state, dispatch } = useApp();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const feature = state.selectedFeature;
 
   if (!feature) return null;
@@ -23,10 +23,10 @@ const NeuralSidebar: React.FC = () => {
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ x: 400, opacity: 0 }}
+        initial={{ x: i18n.language === 'ar' ? -400 : 400, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
-        exit={{ x: 400, opacity: 0 }}
-        className="fixed top-24 right-8 bottom-12 w-80 lg:w-96 z-[1001] bg-black/60 backdrop-blur-3xl border border-white/10 rounded-[3rem] shadow-[0_0_100px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col"
+        exit={{ x: i18n.language === 'ar' ? -400 : 400, opacity: 0 }}
+        className="fixed top-24 ltr:right-8 rtl:left-8 bottom-12 w-80 lg:w-96 z-[1001] bg-black/60 backdrop-blur-3xl border border-white/10 rounded-[3rem] shadow-[0_0_100px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col"
       >
         {/* Header */}
         <div className="p-8 border-b border-white/10 flex items-center justify-between">

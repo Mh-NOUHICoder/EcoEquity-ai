@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next";
 
 const ClimateTicker: React.FC = () => {
   const { state } = useApp();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [logs, setLogs] = useState<string[]>([]);
 
   const environmentalLogs = [
@@ -30,7 +30,7 @@ const ClimateTicker: React.FC = () => {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-[100] h-8 bg-black/90 backdrop-blur-xl border-t border-emerald-500/20 flex items-center overflow-hidden shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
-      <div className="flex items-center px-4 lg:px-6 gap-2 bg-emerald-500/10 h-full border-r border-emerald-500/30">
+      <div className="flex items-center px-4 lg:px-6 gap-2 bg-emerald-500/10 h-full border-e border-emerald-500/30">
         <Leaf size={12} className="text-emerald-400 animate-pulse" />
         <span className="text-[9px] font-black text-emerald-400 uppercase tracking-[0.2em] whitespace-nowrap">
           {t('liveTelemetry')}
@@ -39,7 +39,7 @@ const ClimateTicker: React.FC = () => {
       
       <div className="flex-1 relative overflow-hidden h-full flex items-center">
         <motion.div
-          animate={{ x: [0, -2000] }}
+          animate={{ x: i18n.language === 'ar' ? [2000, 0] : [0, -2000] }}
           transition={{ duration: 50, repeat: Infinity, ease: "linear" }}
           className="flex items-center gap-16 whitespace-nowrap pl-8"
         >
@@ -54,7 +54,7 @@ const ClimateTicker: React.FC = () => {
         </motion.div>
       </div>
 
-      <div className="hidden lg:flex items-center px-6 gap-8 h-full border-l border-white/5 bg-black/40">
+      <div className="hidden lg:flex items-center px-6 gap-8 h-full border-s border-white/5 bg-black/40">
         <div className="flex items-center gap-2">
           <Cpu size={12} className="text-cyan-400" />
           <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">{t('neuralLoad')}:</span>

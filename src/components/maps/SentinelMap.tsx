@@ -126,6 +126,7 @@ const MapInitialFocus = ({ center }: { center: [number, number] }) => {
   const map = useMap();
   const { state } = useApp();
   const hasFocused = useRef(false);
+  const flyToCoords = useRef<string | null>(null);
 
   useEffect(() => {
     // Strict validation: Must be numbers, not NaN, not Null
@@ -137,17 +138,27 @@ const MapInitialFocus = ({ center }: { center: [number, number] }) => {
       !isNaN(c[0]) && 
       !isNaN(c[1]);
 
-    if (!hasFocused.current && !state.focusCoords && isVal(center) && !(center[0] === 20 && center[1] === 0)) {
+    const coordKey = isVal(center) ? `${center[0].toFixed(4)},${center[1].toFixed(4)}` : null;
+
+    if (!state.focusCoords && isVal(center) && coordKey !== flyToCoords.current && !(center[0] === 20 && center[1] === 0)) {
         try {
-            map.flyTo(center, 15, { duration: 3.5, animate:true, easeLinearity: 0.1 });
-            hasFocused.current = true;
+            // Priority: if we have a user location, we should eventually fly to it on entry
+            const isUserLoc = state.userLocation && 
+                             Math.abs(center[0] - state.userLocation[0]) < 0.001 && 
+                             Math.abs(center[1] - state.userLocation[1]) < 0.001;
+
+            if (!hasFocused.current || isUserLoc) {
+                map.flyTo(center, 15, { duration: 3.5, animate:true, easeLinearity: 0.1 });
+                flyToCoords.current = coordKey;
+                if (isUserLoc) hasFocused.current = true;
+            }
         } catch (e) {
             console.error("Map flyTo failed", e);
         }
     } else if (state.focusCoords) {
         hasFocused.current = true;
     }
-  }, [center, map, state.focusCoords]);
+  }, [center, map, state.focusCoords, state.userLocation]);
   return null;
 };
 
@@ -399,6 +410,7 @@ const SentinelMap: React.FC = () => {
   const { t } = useTranslation();
   const theme = MAP_THEMES.find(t => t.id === state.mapTheme) || MAP_THEMES[0];
   const defaultCenter: [number, number] = [30.998043, -6.755833];
+  
   const initialCenter = useMemo(() => {
     const isVal = (c: any) => 
       Array.isArray(c) && 
@@ -408,18 +420,24 @@ const SentinelMap: React.FC = () => {
       !isNaN(c[0]) && 
       !isNaN(c[1]);
 
-    if (isVal(state.lastMapCenter)) return state.lastMapCenter as [number, number];
+    // Priority: 1. User Location (Most relevant for "Fly to local on entry")
+    // 2. Last known map center
     if (isVal(state.userLocation)) return state.userLocation as [number, number];
+    if (isVal(state.lastMapCenter)) return state.lastMapCenter as [number, number];
     return defaultCenter;
-  }, [state.lastMapCenter, state.userLocation]);
+  }, [state.userLocation, state.lastMapCenter]);
 
   const [currentCenter, setCurrentCenter] = useState<[number, number]>(initialCenter);
   const [hoveredCell, setHoveredCell] = useState<any>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [isMobile, setIsMobile] = useState(false);
-  const [locationLoaded, setLocationLoaded] = useState(false);
   const [activeMobileCard, setActiveMobileCard] = useState<string | null>(null);
   const [showReports, setShowReports] = useState(true);
+
+  // Synchronize currentCenter if initialCenter changes
+  useEffect(() => {
+    setCurrentCenter(initialCenter);
+  }, [initialCenter]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -430,24 +448,6 @@ const SentinelMap: React.FC = () => {
     handleResize();
     window.addEventListener("resize", handleResize);
     window.addEventListener("mousemove", (e) => setMousePos({ x: e.clientX, y: e.clientY }));
-
-    // Global Geolocation Sync
-    if (navigator.geolocation && !state.userLocation) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const { latitude, longitude } = position.coords;
-                setCurrentCenter([latitude, longitude]);
-                dispatch({ type: "SET_USER_LOCATION", payload: [latitude, longitude] });
-                setLocationLoaded(true);
-            },
-            () => {
-                setLocationLoaded(true); // Proceed with default if blocked
-            },
-            { enableHighAccuracy: true }
-        );
-    } else {
-        setLocationLoaded(true);
-    }
 
     return () => {
         window.removeEventListener("resize", handleResize);
@@ -472,8 +472,8 @@ const SentinelMap: React.FC = () => {
       <MapContainer center={[20, 0]} zoom={3} zoomControl={false} style={{ height: "100%", width: "100%" }} className="bg-[#05080D] h-full w-full">
         <MapResizer />
         <TileLayer url={theme.url} attribution={theme.attribution} />
-        {locationLoaded && (
-          <>
+        
+        <>
             {state.heatRiskMode ? (
               <GeoJSON 
                 data={NDVI_GEOJSON as any} 
@@ -557,13 +557,12 @@ const SentinelMap: React.FC = () => {
             })} />
 
             <MapMoveHandler onMove={setCurrentCenter} />
-            <MapInitialFocus center={currentCenter} />
             <MapFocusHandler />
+            <MapInitialFocus center={currentCenter} />
             {showReports && <ReportMarkers />}
 
             {/* Neural pulse markers removed for a clean, telemetry-focused map view. Recommendations are available in the AI Insights Panel. */}
           </>
-        )}
       </MapContainer>
 
       {/* --- PREMIUM UNIFIED COMMAND BRIDGE --- */}
@@ -575,11 +574,17 @@ const SentinelMap: React.FC = () => {
             animate={{ y: 0, opacity: 1 }}
             className="flex items-center gap-2 pointer-events-auto"
           >
+            {!isMobile && (
+                <MapThemeSwitcher 
+                    showText={false} 
+                    align="left" 
+                    direction="down" 
+                    className="relative shrink-0" 
+                />
+            )}
             <div className="flex-1 min-w-0">
                <MapSearch />
             </div>
-            
-            {/* The Search Bar takes the full width available now */}
           </motion.div>
       </div>
 
@@ -756,13 +761,7 @@ const SentinelMap: React.FC = () => {
                 </motion.div>
              ) : null}
 
-             {/* Desktop-only Theme Switcher (already handled for mobile in header) */}
-             {!isMobile && (
-                <div className="hidden lg:flex flex-col items-end gap-3 ml-auto">
-                   <div className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] pr-4">{t('selectTerrain')}</div>
-                   <MapThemeSwitcher align="right" direction="up" className="relative" />
-                </div>
-             )}
+
 
           </div>
       </div>

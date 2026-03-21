@@ -18,6 +18,8 @@ export interface UseGeminiLiveReturn {
   disconnect: () => void;
   toggleListening: () => void;
   captureAndAnalyze: (imageBase64: string) => Promise<void>;
+  queryAgent: (userText: string, imageBase64?: string, options?: { silent?: boolean }) => Promise<void>;
+  setIsProcessing: (v: boolean) => void;
   error: string | null;
 }
 
@@ -93,11 +95,11 @@ export function useGeminiLive(): UseGeminiLiveReturn {
     setFunctionCalls([]);
   }, []);
 
-  const queryAgent = useCallback(async (userText: string, imageBase64?: string) => {
+  const queryAgent = useCallback(async (userText: string, imageBase64?: string, options?: { silent?: boolean }) => {
     setResponse('');
     setFunctionCalls([]);
     setTranscript(userText);
-    setIsProcessing(true);
+    if (!options?.silent) setIsProcessing(true);
 
     try {
       const res = await fetch('/api/voice-query', {
@@ -243,6 +245,8 @@ export function useGeminiLive(): UseGeminiLiveReturn {
     disconnect,
     toggleListening,
     captureAndAnalyze,
+    queryAgent,
+    setIsProcessing,
     error,
   };
 }

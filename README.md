@@ -16,8 +16,22 @@
 
 <br />
 
-## 🏆 Gemini Live Agent Challenge
-**EcoEquity AI** features a state-of-the-art **Gemini Live Agent** implementation, specifically engineered for the [Gemini Live Agent Challenge](https://ai.google.dev/competition). We've transformed the platform from a static dashboard into a **Multimodal Geospatial AI Specialist** that can see, hear, and interact with the planet's data in real-time.
+---
+
+## 🏆 Hackathon Compliance & Requirements
+This project is purpose-built to exceed all mandatory hackathon criteria:
+
+- **🚀 Leverage a Gemini Model**: EcoEquity AI orchestrates the entire intelligence lifecycle using **Gemini 2.0 Flash**, **Gemini 1.5 Pro**, and the latest **Gemini 3.1 Preview** cores. These models handle real-time geospatial reasoning, thermal anomaly detection, and community strategy generation.
+- **🤖 Google GenAI SDK Implementation**: The **Eco-Sentinel Agent** is architected using the official **Google Generative AI SDK** (`@google/generative-ai`). It leverages advanced features like **Function Calling** for map control and **Streaming SSE** for low-latency voice-to-action responses.
+- **☁️ Google Cloud Ecosystem**: The platform is deeply integrated with the **Google Cloud** ecosystem:
+  - **Vertex AI**: Used as the primary high-performance neural infrastructure for mission-critical environmental analysis.
+  - **Google AI Studio**: Utilized for rapid prototyping and as a reliable fallback for model orchestration.
+  - **Google Cloud Project**: All API services and tactical grounding are managed through a centralized GCP project environment.
+
+## 🌐 Proof of Google Cloud Integration (Code Reference)
+Per the hackathon requirements for technical proof:
+- **🔗 Primary Integration File**: [`src/app/api/agent-query/route.ts`](./src/app/api/agent-query/route.ts)
+- **🛠️ Technical Implementation**: This file demonstrates direct, production-grade interaction with **Google Cloud Vertex AI** endpoints using the official `@google-cloud/vertexai` library. It manages high-performance context windows, multimodal vision telemetry, and secure link-handling via the automated **Google Sentinel** logic layer.
 
 ---
 

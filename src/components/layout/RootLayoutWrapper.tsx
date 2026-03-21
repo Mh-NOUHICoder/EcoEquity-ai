@@ -6,7 +6,6 @@ import LoadingScreen from "@/components/ui/LoadingScreen";
 import GlobalHUDFx from "@/components/ui/GlobalHUDFx";
 import ClimateTicker from "@/components/ui/ClimateTicker";
 import NeuralSidebar from "@/components/ui/NeuralSidebar";
-import { VoiceAgent } from "@/components/ui/VoiceAgent";
 import { useTranslation } from "react-i18next";
 import "@/lib/i18n";
 
@@ -66,7 +65,6 @@ export default function RootLayoutWrapper({
           <GlobalHUDFx />
           <ClimateTicker />
           <NeuralSidebar />
-          <VoiceAgent />
         </>
       )}
       <main className={state.isAppLoading ? "hidden" : "block h-full w-full"}>

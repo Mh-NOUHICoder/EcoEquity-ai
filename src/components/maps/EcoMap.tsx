@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useMemo } from "react";
-import { MapContainer, TileLayer, GeoJSON, useMap, Marker, Popup, useMapEvents, Rectangle } from "react-leaflet";
+import { MapContainer, TileLayer, GeoJSON, useMap, Marker, Popup, useMapEvents, Rectangle, Circle, Polyline } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { motion, AnimatePresence } from "framer-motion";
@@ -37,6 +37,7 @@ import { MapSearch } from "./MapSearch";
 import { useTranslation } from "react-i18next";
 import { calculateHeatRisk } from "@/utils/calculateHeatRisk";
 import { reverseGeocode } from "@/utils/reverseGeocode";
+import { useAppStore } from "@/store/useAppStore";
 
 // --- Constants ---
 const HUD_GLASS = `relative bg-[#05080D]/90 backdrop-blur-[40px] border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.05)]`;
@@ -192,26 +193,91 @@ const ReportMarkers = () => {
     );
 };
 
+const HeatZoneMarkers = () => {
+    const heatZones = useAppStore(s => s.heatZones);
+    return (
+        <>
+            {heatZones.map(zone => (
+                <Circle 
+                    key={zone.id}
+                    center={[zone.lat, zone.lng]}
+                    radius={zone.radius}
+                    pathOptions={{
+                        fillColor: '#ef4444',
+                        fillOpacity: zone.intensity * 0.4,
+                        color: zone.intensity > 0.8 ? '#ef4444' : 'transparent',
+                        weight: 2,
+                        dashArray: '5, 5'
+                    }}
+                >
+                    <Popup className="eco-popup">
+                        <div className="p-2 text-white">
+                            <div className="text-[10px] font-black text-red-500 uppercase mb-1 flex items-center gap-2">
+                                <Zap size={10} className="animate-pulse" />
+                                Thermal Anomaly Detected
+                            </div>
+                            <strong className="block text-sm">{zone.label}</strong>
+                            <div className="mt-2 h-1 w-full bg-white/10 rounded-full overflow-hidden">
+                                <div className="h-full bg-red-500" style={{ width: `${zone.intensity * 100}%` }} />
+                            </div>
+                            <p className="text-[9px] mt-1 opacity-60">Intensity: {(zone.intensity * 100).toFixed(0)}%</p>
+                        </div>
+                    </Popup>
+                </Circle>
+            ))}
+        </>
+    );
+};
+
+const LiveRouteLayer = () => {
+    const activeRoute = useAppStore(s => s.activeRoute);
+    if (!activeRoute) return null;
+    return (
+        <Polyline 
+            positions={activeRoute.map(r => [r.lat, r.lng])}
+            pathOptions={{
+                color: '#10b981',
+                weight: 5,
+                opacity: 0.6,
+                dashArray: '10, 10',
+                lineJoin: 'round'
+            }}
+        />
+    );
+};
+
 const MapInitialFocus = ({ center }: { center: [number, number] }) => {
   const map = useMap();
   const { state } = useApp();
   const hasFocused = useRef(false);
+  const flyToCoords = useRef<string | null>(null);
 
   useEffect(() => {
     const isVal = (c: any) => 
       Array.isArray(c) && c.length === 2 && typeof c[0] === 'number' && typeof c[1] === 'number' && !isNaN(c[0]) && !isNaN(c[1]);
 
-    if (!hasFocused.current && !state.focusCoords && isVal(center) && !(center[0] === 20 && center[1] === 0)) {
+    const coordKey = isVal(center) ? `${center[0].toFixed(4)},${center[1].toFixed(4)}` : null;
+
+    if (!state.focusCoords && isVal(center) && coordKey !== flyToCoords.current && !(center[0] === 20 && center[1] === 0)) {
         try {
-            map.flyTo(center, 14, { duration: 3.5, animate: true, easeLinearity: 0.1 });
-            hasFocused.current = true;
+            // Priority: if we have a user location, we should eventually fly to it on entry
+            // If the current center is the user location, we mark as focused
+            const isUserLoc = state.userLocation && 
+                             Math.abs(center[0] - state.userLocation[0]) < 0.001 && 
+                             Math.abs(center[1] - state.userLocation[1]) < 0.001;
+
+            if (!hasFocused.current || isUserLoc) {
+                map.flyTo(center, 14, { duration: 3.5, animate: true, easeLinearity: 0.1 });
+                flyToCoords.current = coordKey;
+                if (isUserLoc) hasFocused.current = true;
+            }
         } catch (e) {
             console.error("Map flyTo failed", e);
         }
     } else if (state.focusCoords) {
         hasFocused.current = true;
     }
-  }, [center, map, state.focusCoords]);
+  }, [center, map, state.focusCoords, state.userLocation]);
   return null;
 };
 
@@ -220,11 +286,14 @@ const MapFocusHandler = () => {
     const { state, dispatch } = useApp();
     const { t } = useTranslation();
     const lastFlownTo = useRef<string | null>(null);
+    const agentFocus = useAppStore(s => s.focusCoords);
+    const setAgentFocus = useAppStore(s => s.setFocusCoords);
     
     useEffect(() => {
         const isVal = (c: any) => 
             Array.isArray(c) && c.length === 2 && typeof c[0] === 'number' && typeof c[1] === 'number' && !isNaN(c[0]) && !isNaN(c[1]);
 
+        // 1. AppContext focusCoords
         if (state.focusCoords && isVal(state.focusCoords)) {
             const [lat, lng] = state.focusCoords;
             const coordKey = `${lat.toFixed(5)},${lng.toFixed(5)}`;
@@ -262,6 +331,16 @@ const MapFocusHandler = () => {
             return;
         }
 
+        // 2. Zustand Store focusCoords (Agent Focus)
+        if (agentFocus) {
+            const coordKey = `agent-${agentFocus.lat.toFixed(5)},${agentFocus.lng.toFixed(5)}`;
+            if (lastFlownTo.current !== coordKey) {
+                lastFlownTo.current = coordKey;
+                map.flyTo([agentFocus.lat, agentFocus.lng], 16, { duration: 3, animate: true });
+                setAgentFocus(null);
+            }
+        }
+
         if (state.selectedFeature) {
             const feat = state.selectedFeature;
             const coords = feat.geometry.type === 'Point' 
@@ -278,7 +357,7 @@ const MapFocusHandler = () => {
                 }
             }
         }
-    }, [state.focusCoords, state.selectedFeature, map, dispatch, t]);
+    }, [state.focusCoords, state.selectedFeature, map, dispatch, t, agentFocus, setAgentFocus]);
     return null;
 }
 
@@ -350,16 +429,23 @@ export default function EcoMap() {
   
   const initialCenter = useMemo(() => {
     const isVal = (c: any) => Array.isArray(c) && c.length === 2 && typeof c[0] === 'number' && typeof c[1] === 'number' && !isNaN(c[0]) && !isNaN(c[1]);
-    if (isVal(state.lastMapCenter)) return state.lastMapCenter as [number, number];
+    
+    // Priority: 1. User Location (Most relevant for "Fly to local on entry")
+    // 2. Last known map center
     if (isVal(state.userLocation)) return state.userLocation as [number, number];
+    if (isVal(state.lastMapCenter)) return state.lastMapCenter as [number, number];
     return defaultCenter;
-  }, [state.lastMapCenter, state.userLocation]);
+  }, [state.userLocation, state.lastMapCenter]);
 
   const [mapCenter, setMapCenter] = useState<[number, number]>(initialCenter);
-  const [locationLoaded, setLocationLoaded] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [activeMobileCard, setActiveMobileCard] = useState<string | null>(null);
   const [showReports, setShowReports] = useState(true);
+
+  // Synchronize state mapCenter if initialCenter changes (e.g. hydration or location detection)
+  useEffect(() => {
+    setMapCenter(initialCenter);
+  }, [initialCenter]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -369,22 +455,6 @@ export default function EcoMap() {
     };
     handleResize();
     window.addEventListener("resize", handleResize);
-
-    if (navigator.geolocation && !state.userLocation) {
-        navigator.geolocation.getCurrentPosition(
-            (pos) => {
-                const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
-                setMapCenter(coords);
-                dispatch({ type: "SET_USER_LOCATION", payload: coords });
-                setLocationLoaded(true);
-            },
-            () => setLocationLoaded(true),
-            { enableHighAccuracy: true }
-        );
-    } else {
-        setLocationLoaded(true);
-    }
-
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
@@ -405,11 +475,10 @@ export default function EcoMap() {
         <TileLayer url={theme.url} attribution={theme.attribution} />
         <MapInitialFocus center={mapCenter} />
         
-        {locationLoaded && (
-            <>
-                <MapMoveHandler onMove={setMapCenter} />
-                <MapFocusHandler />
-                <MapClickHandler />
+        <>
+            <MapMoveHandler onMove={setMapCenter} />
+            <MapFocusHandler />
+            <MapClickHandler />
 
                 {state.heatRiskMode ? (
                     <HeatRiskLayer />
@@ -462,9 +531,11 @@ export default function EcoMap() {
                     iconSize: [40, 40], iconAnchor: [20, 20]
                 })} />
 
-                {showReports && <ReportMarkers />}
+                 {showReports && <ReportMarkers />}
+                 <HeatZoneMarkers />
+                 <LiveRouteLayer />
 
-                {state.aiInsight?.recommendations && state.selectedFeature && (
+                 {state.aiInsight?.recommendations && state.selectedFeature && (
                     <>
                         {state.aiInsight.recommendations.map((rec, i) => {
                             const center = state.selectedFeature!.geometry.type === 'Point' 
@@ -484,13 +555,20 @@ export default function EcoMap() {
                     </>
                 )}
             </>
-        )}
       </MapContainer>
 
       {/* COMMAND DECK */}
       <div className="absolute top-16 lg:top-14 left-1/2 -translate-x-1/2 z-[1005] w-full max-w-sm lg:max-w-xl px-4 pointer-events-none">
           <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="flex flex-col gap-3">
               <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : 'flex-row'} gap-2 pointer-events-auto`}>
+                  {!isMobile && (
+                    <MapThemeSwitcher 
+                      showText={false} 
+                      align={isRTL ? "right" : "left"} 
+                      direction="down" 
+                      className="relative shrink-0" 
+                    />
+                  )}
                   <div className="flex-1 min-w-0"><MapSearch /></div>
                   <div className={`${HUD_GLASS} px-2 py-2 rounded-3xl border-emerald-500/20 flex items-center gap-1 shadow-2xl shrink-0`}>
                     <button onClick={() => dispatch({ type: "TOGGLE_HEAT_RISK" })} className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${!state.heatRiskMode ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}`}>Grid</button>
@@ -610,12 +688,7 @@ export default function EcoMap() {
                     </motion.div>
                 )}
 
-                {!isMobile && (
-                    <div className="flex flex-col items-end justify-center mb-1">
-                        <span className="text-[8px] font-black text-white/30 uppercase tracking-widest mb-1.5 pr-2">{t('selectTerrain') || "Terrain Type"}</span>
-                        <MapThemeSwitcher align="right" direction="up" className="relative" />
-                    </div>
-                )}
+
                 
                 {isMobile ? (
                     <div className="flex gap-2">
