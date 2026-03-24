@@ -9,7 +9,7 @@
     <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-Ready-blue?logo=typescript" alt="TypeScript"></a>
     <a href="https://tailwindcss.com/"><img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?logo=tailwind-css&logoColor=white" alt="Tailwind CSS"></a>
     <a href="https://cloud.google.com/vertex-ai"><img src="https://img.shields.io/badge/Google_Cloud-Vertex_AI-4285F4?logo=google-cloud&logoColor=white" alt="Vertex AI"></a>
-    <a href="https://deepmind.google/technologies/gemini/"><img src="https://img.shields.io/badge/AI-Gemini_1.5_Flash-4285F4?logo=google-gemini&logoColor=white" alt="Gemini 1.5 Flash"></a>
+    <a href="https://deepmind.google/technologies/gemini/"><img src="https://img.shields.io/badge/AI-Gemini-4285F4?logo=google-gemini&logoColor=white" alt="Gemini 1.5 Flash"></a>
     <a href="https://www.sentinel-hub.com/"><img src="https://img.shields.io/badge/Satellite-Sentinel_Hub-004B87" alt="Sentinel Hub"></a>
   </p>
 </div>
