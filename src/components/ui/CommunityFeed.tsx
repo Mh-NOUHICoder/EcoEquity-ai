@@ -74,24 +74,54 @@ export default function CommunityFeed() {
           </div>
         </div>
 
-        {/* Action Button: Create New Report */}
+        {/* Creative "Submit Report" Action Button */}
         <motion.button
-            whileHover={{ scale: 1.02, y: -2 }}
+            whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleOpenReportModal}
-            className="w-full mb-8 p-5 rounded-[2rem] bg-emerald-500 hover:bg-emerald-400 text-obsidian-950 flex items-center justify-between gap-3 shadow-[0_20px_40px_rgba(16,185,129,0.2)] transition-all group overflow-hidden relative"
+            className="w-full mb-8 relative p-1 rounded-[2rem] bg-gradient-to-b from-white/10 to-transparent shadow-[0_20px_40px_rgba(0,0,0,0.5)] group overflow-hidden"
         >
-            <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="flex items-center gap-4 relative z-10">
-                <div className="w-10 h-10 rounded-2xl bg-black/10 flex items-center justify-center border border-black/5">
-                    <Plus size={20} className="text-obsidian-900" />
-                </div>
-                <div className="flex flex-col items-start px-1">
-                    <span className="text-[11px] font-black uppercase tracking-widest leading-none mb-1">{t('submitRequest')}</span>
-                    <span className="text-[9px] font-bold opacity-60 tracking-tight uppercase">{t('locateMe')}</span>
+            <div className="absolute inset-0 bg-[url('/noise.png')] opacity-20 mix-blend-overlay pointer-events-none" />
+            
+            <div className="relative h-full bg-[#05080D]/90 backdrop-blur-xl rounded-[1.85rem] border border-emerald-500/30 overflow-hidden flex items-center justify-between p-5 transition-colors group-hover:border-emerald-400/60">
+                {/* Scanning Laser Line */}
+                <motion.div 
+                    initial={{ y: "-100%" }}
+                    animate={{ y: "400%" }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                    className="absolute top-0 left-0 w-full h-8 bg-gradient-to-b from-transparent via-emerald-500/20 to-transparent opacity-50 pointer-events-none"
+                />
+
+                <div className="flex items-center gap-4 relative z-10 w-full">
+                    <div className="relative w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 group-hover:bg-emerald-500/20 transition-all overflow-hidden">
+                        <motion.div 
+                            animate={{ rotate: 360 }} 
+                            transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                            className="absolute inset-0 border-[2px] border-dashed border-emerald-500/30 rounded-2xl scale-125"
+                        />
+                        <Plus size={22} className="text-emerald-400 group-hover:scale-110 transition-transform" />
+                    </div>
+                    <div className="flex flex-col items-start flex-1">
+                        <span className="text-[12px] font-black uppercase tracking-[0.3em] text-emerald-400 mb-1 group-hover:text-emerald-300 transition-colors">
+                            {t('submitRequest')}
+                        </span>
+                        <div className="flex items-center gap-2">
+                           <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                           <span className="text-[9px] font-mono font-bold text-white/50 tracking-widest uppercase">
+                               AWAITING_FIELD_INTEL
+                           </span>
+                        </div>
+                    </div>
+                    
+                    {/* Targeting Crosshair */}
+                    <div className="relative w-8 h-8 flex items-center justify-center opacity-40 group-hover:opacity-100 transition-opacity shrink-0">
+                        <div className="absolute inset-0 border border-emerald-500/40 rounded-full" />
+                        <div className="absolute top-1/2 left-0 w-full h-px bg-emerald-500/40" />
+                        <div className="absolute left-1/2 top-0 h-full w-px bg-emerald-500/40" />
+                        <MapPin size={10} className="text-emerald-400 absolute" />
+                    </div>
                 </div>
             </div>
-            <MapPin size={18} className="relative z-10 opacity-40 group-hover:opacity-100 transition-opacity" />
         </motion.button>
 
         <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">

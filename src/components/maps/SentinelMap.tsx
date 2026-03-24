@@ -20,11 +20,23 @@ import { MOCK_REPORTS, NDVI_GEOJSON } from "@/lib/data";
 import { useTranslation } from "react-i18next";
 import { reverseGeocode } from "@/utils/reverseGeocode";
 import { calculateHeatRisk } from "@/utils/calculateHeatRisk";
+import { useAppStore } from "@/store/useAppStore";
+import { HeatRiskLayer } from "./HeatRiskLayer";
 
 // --- Constants for Premium Global HUD ---
 const HUD_GLASS = `relative bg-[#05080D]/90 backdrop-blur-[40px] border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.05)]`;
 
 // --- Helpers ---
+
+const checkCoordsVal = (c: any): c is [number, number] => 
+    Array.isArray(c) && 
+    c.length === 2 && 
+    typeof c[0] === 'number' && 
+    typeof c[1] === 'number' && 
+    !isNaN(c[0]) && 
+    !isNaN(c[1]) &&
+    isFinite(c[0]) &&
+    isFinite(c[1]);
 
 const SmoothValue = ({ value }: { value: number | null }) => {
   const motionValue = useMotionValue(0);
@@ -70,9 +82,10 @@ const GlobalGrid = ({ onCellHover }: { onCellHover: (data: any) => void }) => {
     for (let lat = s; lat < n; lat += res) {
       for (let lng = w; lng < e; lng += res) {
         const ndvi = getDynamicNDVI(lat + res/2, lng + res/2);
+        const elevation = Math.floor(Math.random() * 40 + 1160);
         list.push({ 
             id: `${lat}-${lng}`, bounds: [[lat, lng], [lat + res, lng + res]] as L.LatLngBoundsExpression, 
-            ndvi, lat: lat + res/2, lng: lng + res/2 
+            ndvi, lat: lat + res/2, lng: lng + res/2, elevation
         });
       }
     }
@@ -86,14 +99,13 @@ const GlobalGrid = ({ onCellHover }: { onCellHover: (data: any) => void }) => {
           key={cell.id} bounds={cell.bounds} 
           pathOptions={{ 
             fillColor: getColor(cell.ndvi), 
-            fillOpacity: zoom >= 15 ? 0.25 : 0.15, 
-            color: "rgba(255,255,255,0.05)", weight: 0.5 
+            fillOpacity: zoom >= 15 ? 0.15 : 0.05, 
+            color: "rgba(255,255,255,0.03)", weight: 0.5 
           }} 
           eventHandlers={{ 
-            mouseover: () => onCellHover({ lat: cell.lat, lng: cell.lng, ndvi: cell.ndvi }),
+            mouseover: () => onCellHover({ ...cell }),
             click: (e: any) => {
-                onCellHover({ lat: cell.lat, lng: cell.lng, ndvi: cell.ndvi });
-                // Use standardized matching for tactical grid
+                onCellHover({ ...cell });
                 const matched = findDistrictByCoords(cell.lat, cell.lng, NDVI_GEOJSON);
                 
                 dispatch({ 
@@ -129,20 +141,10 @@ const MapInitialFocus = ({ center }: { center: [number, number] }) => {
   const flyToCoords = useRef<string | null>(null);
 
   useEffect(() => {
-    // Strict validation: Must be numbers, not NaN, not Null
-    const isVal = (c: any) => 
-      Array.isArray(c) && 
-      c.length === 2 && 
-      typeof c[0] === 'number' && 
-      typeof c[1] === 'number' && 
-      !isNaN(c[0]) && 
-      !isNaN(c[1]);
+    const coordKey = checkCoordsVal(center) ? `${center[0].toFixed(4)},${center[1].toFixed(4)}` : null;
 
-    const coordKey = isVal(center) ? `${center[0].toFixed(4)},${center[1].toFixed(4)}` : null;
-
-    if (!state.focusCoords && isVal(center) && coordKey !== flyToCoords.current && !(center[0] === 20 && center[1] === 0)) {
+    if (!state.focusCoords && checkCoordsVal(center) && coordKey !== flyToCoords.current && !(center[0] === 20 && center[1] === 0)) {
         try {
-            // Priority: if we have a user location, we should eventually fly to it on entry
             const isUserLoc = state.userLocation && 
                              Math.abs(center[0] - state.userLocation[0]) < 0.001 && 
                              Math.abs(center[1] - state.userLocation[1]) < 0.001;
@@ -184,17 +186,13 @@ const MapFocusHandler = () => {
   const { t } = useTranslation();
   const lastFlownTo = useRef<string | null>(null);
   
-  useEffect(() => {
-    const isVal = (c: any) => 
-      Array.isArray(c) && 
-      c.length === 2 && 
-      typeof c[0] === 'number' && 
-      typeof c[1] === 'number' && 
-      !isNaN(c[0]) && 
-      !isNaN(c[1]);
+  // Add agent focus state for AI sync
+  const agentFocus = useAppStore(s => s.focusCoords);
+  const setAgentFocus = useAppStore(s => s.setFocusCoords);
 
+  useEffect(() => {
     // 1. Handle Search Results
-    if (state.focusCoords && isVal(state.focusCoords)) {
+    if (state.focusCoords && checkCoordsVal(state.focusCoords)) {
       const [lat, lng] = state.focusCoords;
       const coordKey = `${lat.toFixed(5)},${lng.toFixed(5)}`;
 
@@ -203,7 +201,6 @@ const MapFocusHandler = () => {
           try {
             map.flyTo(state.focusCoords, 16, { duration: 3, animate: true });
             
-            // Auto-select the feature at destination
             setTimeout(async () => {
                 const matched = findDistrictByCoords(lat, lng, NDVI_GEOJSON);
                 if (matched) {
@@ -235,25 +232,42 @@ const MapFocusHandler = () => {
       return;
     }
 
-    // 2. Handle Selected Feature
+    // 2. Handle Agent Focus
+    if (agentFocus && checkCoordsVal(agentFocus)) {
+        const [lat, lng] = agentFocus;
+        const coordKey = `agent-${lat.toFixed(4)},${lng.toFixed(4)}`;
+        if (lastFlownTo.current !== coordKey) {
+            lastFlownTo.current = coordKey;
+            try {
+                map.flyTo(agentFocus as [number, number], 14, { duration: 3 });
+            } catch (e) {
+                console.error("Agent focus flyTo failed", e);
+            }
+        }
+        setAgentFocus(null);
+    }
+
+    // 3. Handle Selected Feature
     if (state.selectedFeature) {
         const feat = state.selectedFeature;
         const coords = feat.geometry.type === 'Point' 
             ? [feat.geometry.coordinates[1], feat.geometry.coordinates[0]]
             : [feat.geometry.coordinates[0][0][1], feat.geometry.coordinates[0][0][0]];
         
-        if (isVal(coords)) {
+        if (checkCoordsVal(coords)) {
             const currentCenter = map.getCenter();
             const dist = Math.sqrt(Math.pow(currentCenter.lat - (coords[0] as number), 2) + Math.pow(currentCenter.lng - (coords[1] as number), 2));
             
             const coordKey = `feat-${feat.properties.name}`;
             if (dist > 0.005 && lastFlownTo.current !== coordKey) {
                 lastFlownTo.current = coordKey;
-                map.flyTo(coords as [number, number], 16, { duration: 2.5, animate: true });
+                try {
+                    map.flyTo(coords as [number, number], 16, { duration: 2.5, animate: true });
+                } catch(e) {}
             }
         }
     }
-  }, [state.focusCoords, state.selectedFeature, map, dispatch, t]);
+  }, [state.focusCoords, state.selectedFeature, map, dispatch, t, agentFocus, setAgentFocus]);
   
   return null;
 };
@@ -310,7 +324,6 @@ const FloatingAnalysisPanel = () => {
                                     <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em]">{feature.properties.district}</span>
                                 </div>
                             </div>
-                            {/* Tactical Visualizer (Replacing missing image) */}
                             <div className="relative w-14 h-14 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-emerald-500/5 group/viz">
                                 <motion.div 
                                     animate={{ y: ["0%", "100%", "0%"] }}
@@ -412,18 +425,8 @@ const SentinelMap: React.FC = () => {
   const defaultCenter: [number, number] = [30.998043, -6.755833];
   
   const initialCenter = useMemo(() => {
-    const isVal = (c: any) => 
-      Array.isArray(c) && 
-      c.length === 2 && 
-      typeof c[0] === 'number' && 
-      typeof c[1] === 'number' && 
-      !isNaN(c[0]) && 
-      !isNaN(c[1]);
-
-    // Priority: 1. User Location (Most relevant for "Fly to local on entry")
-    // 2. Last known map center
-    if (isVal(state.userLocation)) return state.userLocation as [number, number];
-    if (isVal(state.lastMapCenter)) return state.lastMapCenter as [number, number];
+    if (checkCoordsVal(state.userLocation)) return state.userLocation as [number, number];
+    if (checkCoordsVal(state.lastMapCenter)) return state.lastMapCenter as [number, number];
     return defaultCenter;
   }, [state.userLocation, state.lastMapCenter]);
 
@@ -474,20 +477,8 @@ const SentinelMap: React.FC = () => {
         <TileLayer url={theme.url} attribution={theme.attribution} />
         
         <>
-            {state.heatRiskMode ? (
-              <GeoJSON 
-                data={NDVI_GEOJSON as any} 
-                style={(feature) => ({
-                  fillColor: getColor(feature?.properties.ndvi),
-                  weight: 1.5,
-                  opacity: 0.6,
-                  color: 'white',
-                  fillOpacity: 0.7, // Higher opacity for risk map
-                })}
-              />
-            ) : (
-              <GlobalGrid onCellHover={setHoveredCell} />
-            )}
+            <HeatRiskLayer />
+            {!state.heatRiskMode && <GlobalGrid onCellHover={setHoveredCell} />}
             
               <GeoJSON 
                 data={NDVI_GEOJSON as any} 
@@ -536,7 +527,6 @@ const SentinelMap: React.FC = () => {
                 });
               }}
             />
-            {/* User / Focus Marker Pulse */}
             <Marker position={state.userLocation ?? currentCenter} icon={L.divIcon({
                 className: 'user-lock-icon',
                 html: `
@@ -560,14 +550,10 @@ const SentinelMap: React.FC = () => {
             <MapFocusHandler />
             <MapInitialFocus center={currentCenter} />
             {showReports && <ReportMarkers />}
-
-            {/* Neural pulse markers removed for a clean, telemetry-focused map view. Recommendations are available in the AI Insights Panel. */}
           </>
       </MapContainer>
 
-      {/* --- PREMIUM UNIFIED COMMAND BRIDGE --- */}
-      
-      {/* 1. VISION BAR (Top Center) - Minimalist AR Search */}
+      {/* 1. VISION BAR (Top Center) */}
       <div className="absolute top-16 lg:top-14 left-1/2 -translate-x-1/2 z-[1005] w-full max-w-sm lg:max-w-xl px-4 pointer-events-none">
           <motion.div 
             initial={{ y: -20, opacity: 0 }}
@@ -585,19 +571,19 @@ const SentinelMap: React.FC = () => {
             <div className="flex-1 min-w-0">
                <MapSearch />
             </div>
+            {/* The user specifically asked to remove Grid/Risk from Sentinel, 
+                but keep Heat Map visible. So we don't put the toggle here. */}
           </motion.div>
       </div>
 
-      {/* 2. TACTICAL OVERLAY (The Side Indicators) */}
+      {/* 2. TACTICAL OVERLAY */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {/* Subtle Side Glows */}
         <div className="absolute top-1/4 -left-20 w-40 h-96 bg-emerald-500/5 blur-[100px] rounded-full" />
         <div className="absolute top-1/4 -right-20 w-40 h-96 bg-cyan-500/5 blur-[100px] rounded-full" />
       </div>
 
-      {/* 3. COMMAND BRIDGE DOCK (Tactical Refactor) */}
+      {/* 3. COMMAND BRIDGE DOCK */}
       <div className="absolute bottom-16 lg:bottom-24 left-6 right-6 lg:left-12 lg:right-12 z-[1002] pointer-events-none">
-        {/* Mobile View: High-Visibility Minimalist Dock */}
         <AnimatePresence mode="wait">
           {isMobile && activeMobileCard && (
              <motion.div
@@ -609,12 +595,7 @@ const SentinelMap: React.FC = () => {
                 <div className={`${HUD_GLASS} p-6 rounded-[2.5rem] border-cyan-500/20 overflow-hidden relative shadow-inner backdrop-blur-3xl`}>
                    <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent animate-pulse" />
                    <div className="absolute top-4 right-4 z-20">
-                      <button 
-                        onClick={() => setActiveMobileCard(null)}
-                        className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10 text-white/40 active:bg-cyan-500/20 active:text-white transition-all shadow-xl"
-                      >
-                         ✕
-                      </button>
+                      <button onClick={() => setActiveMobileCard(null)} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10 text-white/40 shadow-xl">✕</button>
                    </div>
                    
                    {activeMobileCard === 'metrics' && (
@@ -626,7 +607,7 @@ const SentinelMap: React.FC = () => {
                           <div className="grid grid-cols-2 gap-4">
                               <div className="space-y-1">
                                   <span className="text-[8px] font-black text-white/30 uppercase tracking-widest">{t('elevation')}</span>
-                                  <div className="text-sm font-mono font-black text-white/90">{hoveredCell ? (Math.random()*40 + 1160).toFixed(0) : "---"}m</div>
+                                  <div className="text-sm font-mono font-black text-white/90">{hoveredCell ? hoveredCell.elevation : "---"}m</div>
                               </div>
                               <div className="space-y-1 border-l border-white/5 pl-4">
                                   <span className="text-[8px] font-black text-white/30 uppercase tracking-widest">{t('atmosphere')}</span>
@@ -645,7 +626,6 @@ const SentinelMap: React.FC = () => {
                          <div className="text-xl font-mono font-black text-white tracking-widest tabular-nums mb-1">
                              {currentCenter[0].toFixed(5)}°N / {currentCenter[1].toFixed(5)}°E
                          </div>
-                         <div className="text-[10px] font-mono text-white/50 uppercase mb-3">DATA DATE: {new Date().toISOString().split('T')[0]}</div>
                          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/5 border border-emerald-500/10 w-fit">
                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                             <span className="text-[9px] font-black text-white/80 uppercase tracking-widest">{t('stableOps')}</span>
@@ -658,15 +638,10 @@ const SentinelMap: React.FC = () => {
         </AnimatePresence>
 
           <div className="pointer-events-auto flex lg:flex-row flex-col items-end lg:justify-between gap-4 w-full">
-            
-            {/* Locate Me - Add for consistency */}
             {!isMobile && (
                 <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }}>
-                    <button 
-                        onClick={handleLocateUser}
-                        className={`${HUD_GLASS} rounded-[2rem] p-4 flex items-center gap-4 border-cyan-500/10 hover:border-cyan-500/30 transition-all group`}
-                    >
-                        <div className="w-10 h-10 rounded-2xl bg-cyan-500/5 flex items-center justify-center border border-white/5 group-hover:bg-cyan-500/20 transition-all">
+                    <button onClick={handleLocateUser} className={`${HUD_GLASS} rounded-[2rem] p-4 flex items-center gap-4 border-cyan-500/10 hover:border-cyan-500/30 transition-all group`}>
+                        <div className="w-10 h-10 rounded-2xl bg-cyan-500/5 flex items-center justify-center border border-white/5 group-hover:bg-cyan-500/20">
                             <Monitor className="w-5 h-5 text-cyan-400" />
                         </div>
                         <div className="flex flex-col text-left pr-4">
@@ -677,24 +652,22 @@ const SentinelMap: React.FC = () => {
                 </motion.div>
             )}
 
-            {/* Mobile View: High-Visibility Minimalist Dock */}
             {isMobile && (
                 <div className="flex gap-2">
-                    <button 
-                      onClick={handleLocateUser}
-                      className={`${HUD_GLASS} w-16 h-16 rounded-3xl flex flex-col items-center justify-center gap-1.5 border-cyan-500/20 shadow-2xl active:scale-95 transition-all`}
-                    >
+                    <button onClick={handleLocateUser} className={`${HUD_GLASS} w-16 h-16 rounded-3xl flex flex-col items-center justify-center gap-1.5 border-cyan-500/20 active:scale-95 transition-all`}>
                         <Monitor size={20} className="text-cyan-400" />
                         <span className="text-[7px] font-black text-white/50 uppercase tracking-tighter">Locate</span>
                     </button>
+                    <button onClick={() => setActiveMobileCard(activeMobileCard === 'metrics' ? null : 'metrics')} className={`${HUD_GLASS} w-16 h-16 rounded-3xl flex flex-col items-center justify-center gap-1.5 border-emerald-500/20 active:scale-90 transition-all ${activeMobileCard === 'metrics' ? 'bg-emerald-500/20 border-emerald-500/40' : ''}`}>
+                      <Command size={20} className={activeMobileCard === 'metrics' ? 'text-emerald-400' : 'text-white/30'} />
+                      <span className="text-[7px] font-black text-white/50 uppercase tracking-tighter whitespace-nowrap">{t('commandOverview').split(' ')[0]}</span>
+                   </button>
                 </div>
             )}
             
-            {/* Desktop Metrics (Shifted) */}
-             {!isMobile ? (
+             {!isMobile && (
                 <motion.div initial={{ x: -20 }} animate={{ x: 0 }} className="hidden lg:block">
                    <div className={`${HUD_GLASS} px-10 py-8 rounded-[3rem] border-white/5 w-80 shadow-[0_40px_100px_rgba(0,0,0,0.8)] backdrop-blur-[60px] group overflow-hidden relative`}>
-                        <div className="absolute top-0 left-0 w-2 h-2 border-l border-t border-emerald-500/40 rounded-tl-xl" />
                         <div className="relative z-10">
                             <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
                                 <Command className="w-4 h-4 text-emerald-400" />
@@ -703,7 +676,7 @@ const SentinelMap: React.FC = () => {
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
                                     <span className="text-[8px] font-black text-white/30 uppercase tracking-widest">{t('elevation')}</span>
-                                    <div className="text-sm font-mono font-black text-white/90">{hoveredCell ? (Math.random()*40 + 1160).toFixed(0) : "---"}m</div>
+                                    <div className="text-sm font-mono font-black text-white/90">{hoveredCell ? hoveredCell.elevation : "---"}m</div>
                                 </div>
                                 <div className="space-y-1 border-l border-white/5 pl-4">
                                     <span className="text-[8px] font-black text-white/30 uppercase tracking-widest">{t('atmosphere')}</span>
@@ -713,23 +686,11 @@ const SentinelMap: React.FC = () => {
                         </div>
                    </div>
                 </motion.div>
-             ) : (
-                <div className="flex flex-col gap-3">
-                   <button 
-                      onClick={() => setActiveMobileCard(activeMobileCard === 'metrics' ? null : 'metrics')}
-                      className={`${HUD_GLASS} w-16 h-16 rounded-3xl flex flex-col items-center justify-center gap-1.5 border-emerald-500/20 active:scale-90 transition-all ${activeMobileCard === 'metrics' ? 'bg-emerald-500/20 border-emerald-500/40 shadow-[0_0_25px_rgba(16,185,129,0.4)]' : ''}`}
-                   >
-                      <Command size={20} className={activeMobileCard === 'metrics' ? 'text-emerald-400' : 'text-white/30'} />
-                      <span className="text-[7px] font-black text-white/50 uppercase tracking-tighter whitespace-nowrap">{t('commandOverview').split(' ')[0]}</span>
-                   </button>
-                </div>
              )}
 
-              {/* Target Coordinates - Compact & Creative */}
-              {!isMobile ? (
+              {!isMobile && (
                 <motion.div initial={{ y: 20 }} animate={{ y: 0 }} className="flex-1 max-w-lg hidden lg:block">
                    <div className={`${HUD_GLASS} px-8 py-5 rounded-[2.5rem] border-white/5 shadow-3xl backdrop-blur-3xl overflow-hidden relative group`}>
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 blur-[40px] rounded-full translate-x-10 -translate-y-10 group-hover:bg-cyan-500/10 transition-colors" />
                         <div className="relative z-10 flex items-center justify-between">
                             <div className="flex items-center gap-5">
                                 <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
@@ -737,20 +698,12 @@ const SentinelMap: React.FC = () => {
                                 </div>
                                 <div className="flex flex-col">
                                     <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.3em] mb-1">{t('targetLockCoords')}</span>
-                                    <div className="flex items-center gap-2">
-                                        <div className="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-mono font-black text-white tracking-widest tabular-nums">
-                                            {currentCenter[0].toFixed(5)}°N
-                                        </div>
-                                        <div className="w-1.5 h-px bg-white/20" />
-                                        <div className="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-mono font-black text-white tracking-widest tabular-nums">
-                                            {currentCenter[1].toFixed(5)}°E
-                                        </div>
+                                    <div className="flex items-center gap-2 text-xs font-mono font-black text-white tracking-widest tabular-nums">
+                                        {currentCenter[0].toFixed(5)}°N / {currentCenter[1].toFixed(5)}°E
                                     </div>
                                 </div>
                             </div>
-                            
                             <div className="flex flex-col items-end">
-                                <span className="text-[8px] font-mono text-white/20 uppercase tracking-widest mb-1.5">{new Date().toISOString().split('T')[0]}</span>
                                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
                                     <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
                                     <span className="text-[8px] font-black text-emerald-400 uppercase tracking-widest">ECO-SYNC</span>
@@ -759,14 +712,10 @@ const SentinelMap: React.FC = () => {
                         </div>
                    </div>
                 </motion.div>
-             ) : null}
-
-
-
+             )}
           </div>
       </div>
 
-      {/* Floating Tactical Data (Cursor Hook) */}
       <AnimatePresence>
         {hoveredCell && !isMobile && (
           <motion.div
@@ -784,6 +733,7 @@ const SentinelMap: React.FC = () => {
                     <div className="text-2xl font-mono font-black text-white leading-none">
                         <SmoothValue value={hoveredCell.ndvi} />
                     </div>
+                    <div className="mt-2 text-[9px] font-mono font-black text-emerald-400 uppercase tracking-widest">ELEV: {hoveredCell.elevation}m</div>
                 </div>
                 <div className="mt-3 flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: getColor(hoveredCell.ndvi) }} />
@@ -797,40 +747,19 @@ const SentinelMap: React.FC = () => {
       <AnimatePresence>
         {hoveredCell && isMobile && (
             <motion.div 
-                initial={{ y: -20, opacity: 0 }} 
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: -20, opacity: 0 }}
+                initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }}
                 className="fixed top-42 left-4 right-4 z-[6000] pointer-events-none"
             >
                 <div className="flex items-center gap-3 bg-[#05080D]/80 backdrop-blur-2xl border border-white/10 rounded-2xl px-4 py-2.5 shadow-2xl">
-                    <div className="relative">
-                        <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 overflow-hidden">
-                           <Satellite size={14} className="text-emerald-400 animate-pulse" />
-                        </div>
-                        <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-[#05080D] animate-ping" />
-                    </div>
-                    
                     <div className="flex-1 flex items-center justify-between min-w-0">
                         <div className="flex flex-col">
                             <span className="text-[7px] font-black text-white/30 uppercase tracking-[0.2em]">{t('liveSectorData')}</span>
-                            <div className="flex items-center gap-2">
-                                <span className="text-lg font-mono font-black text-white leading-none">
-                                    <SmoothValue value={hoveredCell.ndvi} />
-                                </span>
-                                <div className="h-3 w-px bg-white/10" />
-                                <span className="text-[9px] font-black uppercase tracking-tighter truncate" style={{ color: getColor(hoveredCell.ndvi) }}>
-                                    {getHeatLevel(hoveredCell.ndvi) === 'critical' ? t('criticalRiskArea').split(' ')[0] : getHeatLevel(hoveredCell.ndvi) === 'moderate' ? t('moderateStressZone').split(' ')[0] : t('stableEcosystem').split(' ')[0]}
+                            <div className="flex items-center gap-2 text-lg font-mono font-black text-white leading-none">
+                                <SmoothValue value={hoveredCell.ndvi} />
+                                <span className="text-[10px] font-black uppercase ml-2" style={{ color: getColor(hoveredCell.ndvi) }}>
+                                    {getHeatLevel(hoveredCell.ndvi).toUpperCase()}
                                 </span>
                             </div>
-                        </div>
-                        
-                        <div className="flex flex-col items-end">
-                            <div className="flex gap-0.5">
-                                {[1,2,3,4,5].map(i => (
-                                    <div key={i} className={`w-1 h-3 rounded-full ${i <= (hoveredCell.ndvi * 5) ? 'bg-emerald-400' : 'bg-white/10'}`} />
-                                ))}
-                            </div>
-                            <span className="text-[6px] font-mono text-white/20 mt-1 uppercase tracking-widest">Signal: Optimal</span>
                         </div>
                     </div>
                 </div>

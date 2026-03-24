@@ -79,16 +79,16 @@ export function useLiveAgent() {
    * CORE: Send a message to Gemini and handle streaming + tool calls
    * Includes recursive follow-up for autonomous data analysis.
    */
-  const sendMessage = useCallback(async (text: string, imageBase64?: string, isHiddenFollowUp = false) => {
+  const sendMessage = useCallback(async (text: string, imageBase64?: string, depth = 0) => {
     if (!text.trim() && !imageBase64) return;
     
-    console.log(`[Agent] ${isHiddenFollowUp ? 'Follow-up' : 'Query'}: "${text.substring(0, 50)}..."`);
+    console.log(`[Agent] ${depth > 0 ? 'Follow-up (Depth ' + depth + ')' : 'Query'}: "${text.substring(0, 50)}..."`);
     setIsAgentProcessing(true);
     setAgentError(null);
     setAgentStatus('processing');
     
     // Add user message to UI store only if not a hidden system follow-up
-    if (!isHiddenFollowUp) {
+    if (depth === 0) {
       addAgentMessage({ role: 'user', text });
     }
 
@@ -145,6 +145,10 @@ export function useLiveAgent() {
                   console.log(`[Agent] Executing tool: ${name}`);
                   const result = await (agentTools[name as keyof typeof agentTools] as any)(args);
                   
+                  if (result?._isReport && typeof window !== 'undefined') {
+                      window.dispatchEvent(new CustomEvent('AGENT_SUBMIT_REPORT', { detail: result.reportData }));
+                  }
+
                   // Only trigger autonomous follow-up for real model turns (Gemini function calls)
                   // Simulated fallback tools already provide their own complete context.
                   if (!data.isSimulated) {
@@ -160,7 +164,10 @@ export function useLiveAgent() {
                                    finalMsgText.includes("Directive Acknowledged");
 
                 // If it's a following turn, we definitely want the final summary
-                if (finalMsgText && (!isStatusMsg || !isHiddenFollowUp)) {
+                // We skip speaking status messages if we know we're in the middle of a multi-tool chain.
+                const skipSpeak = isStatusMsg && toolResults.length > 0;
+
+                if (finalMsgText && !skipSpeak) {
                     const finalMsg = { 
                         role: 'agent' as const, 
                         text: finalMsgText, 
@@ -189,11 +196,11 @@ export function useLiveAgent() {
       // 🤖 AUTONOMOUS FOLLOW-UP
       // If the agent initiated tools, it now has the data. 
       // We trigger a recursive call so it can explain that data to the user.
-      // 🛡️ RECURSION GUARD: Never follow-up on a follow-up.
-      if (toolResults.length > 0 && !isHiddenFollowUp) {
-        console.log(`[Agent] Data acquired. Triggering autonomous analysis turn...`);
-        const summaryPrompt = `SYSTEM_AUTO_FOLLOWUP: The analysis tools returned: ${JSON.stringify(toolResults)}. Provide a clear, friendly summary of these findings to the user now. Be specific about numbers/intensities.`;
-        await sendMessage(summaryPrompt, undefined, true);
+      // 🛡️ RECURSION GUARD: Max depth 2.
+      if (toolResults.length > 0 && depth < 2) {
+        console.log(`[Agent] Data acquired. Triggering autonomous analysis turn (Depth ${depth + 1})...`);
+        const summaryPrompt = `SYSTEM_AUTO_FOLLOWUP: The analysis tools returned: ${JSON.stringify(toolResults)}. If you still need more data to fulfill the user's explicit request, call the necessary tool now. Otherwise, provide a clear, friendly summary of these findings to the user. Be specific about numbers/intensities.`;
+        await sendMessage(summaryPrompt, undefined, depth + 1);
       }
 
     } catch (err: any) {
@@ -207,7 +214,7 @@ export function useLiveAgent() {
       setAgentStatus('idle');
     } finally {
       // Only release processing flag if we aren't about to do an autonomous follow-up
-      if (toolResults.length === 0) {
+      if (toolResults.length === 0 || depth >= 2) {
         setIsAgentProcessing(false);
       }
     }

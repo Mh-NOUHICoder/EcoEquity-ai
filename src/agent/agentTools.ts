@@ -76,6 +76,22 @@ export const AGENT_TOOLS_SPEC = [
       required: ['placeName'],
     },
   },
+  {
+    name: 'submitFieldReport',
+    description: 'Submit an official community field report on behalf of the user when they report a heat or environmental issue.',
+    parameters: {
+      type: SchemaType.OBJECT,
+      properties: {
+        message: { type: SchemaType.STRING, description: 'A detailed summary of the environmental observation' },
+        heatLevel: { type: SchemaType.STRING, description: 'The analyzed heat risk level: critical, moderate, or healthy' },
+        district: { type: SchemaType.STRING, description: 'The name of the district or sector' },
+        targetLocation: { type: SchemaType.STRING, description: 'Optional. The exact name of the street or city to automagically find the coordinates.' },
+        lat: { type: SchemaType.NUMBER, description: 'Optional latitude' },
+        lng: { type: SchemaType.NUMBER, description: 'Optional longitude' },
+      },
+      required: ['message', 'heatLevel', 'district'],
+    },
+  },
 ];
 
 /**
@@ -146,9 +162,12 @@ export const agentTools = {
   geolocatePlace: async ({ placeName }: { placeName: string }) => {
     try {
         console.log(`[Agent] Searching coordinates for: ${placeName}`);
-        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(placeName)}&limit=1`, {
-            headers: { 'User-Agent': 'EcoEquityAI/1.0' }
-        });
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(placeName)}&limit=1`);
+        
+        if (!response.ok) {
+            throw new Error(`Nominatim API Error: ${response.statusText}`);
+        }
+        
         const data = await response.json();
         
         if (data && data.length > 0) {
@@ -186,5 +205,47 @@ export const agentTools = {
     } catch (e) {
         return { status: 'error', message: 'Geocoding link momentarily offline.' };
     }
+  },
+
+  submitFieldReport: async (args: { message: string; heatLevel: string; district: string; lat?: number; lng?: number; targetLocation?: string }) => {
+    // This tool primarily signals the UI through the useLiveAgent interceptor.
+    // It returns the data necessary for the frontend to create a new CommunityReport.
+    const { message, heatLevel, district, targetLocation } = args;
+    let finalLat = args.lat;
+    let finalLng = args.lng;
+
+    // 1. Geolocate precisely if the agent passed a location name instead of coordinates
+    if ((!finalLat || !finalLng) && targetLocation) {
+        try {
+            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(targetLocation)}&limit=1`);
+            const data = await response.json();
+            if (data && data.length > 0) {
+                finalLat = parseFloat(data[0].lat);
+                finalLng = parseFloat(data[0].lon);
+            }
+        } catch (e) {
+            console.error("[Agent] Internal geocoding for report failed:", e);
+        }
+    }
+
+    // 2. Fallback to center or current focus if completely omitted
+    if (!finalLat || !finalLng) {
+        const { focusCoords, userLocation } = useAppStore.getState();
+        finalLat = focusCoords?.lat || userLocation?.lat || 40.4168; // center
+        finalLng = focusCoords?.lng || userLocation?.lng || -3.7038;
+    }
+    
+    return {
+        _isReport: true, // Special flag for frontend interceptor
+        reportData: {
+            message,
+            heatLevel: ['critical', 'moderate', 'healthy'].includes(heatLevel.toLowerCase()) ? heatLevel.toLowerCase() : 'moderate',
+            district,
+            lat: finalLat,
+            lng: finalLng
+        },
+        status: 'protocol_confirmed',
+        message: `Field intel successfully securely transmitted to global community node for ${district}.`
+    };
   }
 };

@@ -9,6 +9,7 @@ import React, {
 import { ActiveView, CommunityReport, MapTheme, NDVIFeature, Language, AIResult } from "@/types";
 import { useEffect, useRef } from "react";
 import i18n from "@/lib/i18n";
+import { submitTreeRequest } from "@/lib/supabase/supabase";
 
 const STORAGE_KEY = "eco_equity_state_v2"; // Versioned key to avoid old data issues
 
@@ -156,6 +157,53 @@ export function AppProvider({ children }: { children: ReactNode }) {
       i18n.changeLanguage(state.language);
     }
   }, [state.language]);
+
+  // Listen for agent-submitted reports
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleAgentReport = async (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const data = customEvent.detail;
+      
+      const newReport: CommunityReport = {
+        id: Math.random().toString(36).substr(2, 9),
+        author: "Agent Sentinel",
+        avatar: "🤖",
+        district: data.district || "Global Sector",
+        message: data.message,
+        heatLevel: data.heatLevel as any || "moderate",
+        ndvi: 0.5, 
+        timestamp: "just now",
+        upvotes: 0,
+        coordinates: [data.lat, data.lng]
+      };
+
+      // 1. Instantly push to UI for local state
+      dispatch({ type: "ADD_REPORT", payload: newReport });
+      
+      // 2. Persist to Global Database (Supabase)
+      try {
+          await submitTreeRequest({
+              name: "Agent Sentinel",
+              email: "agent.sentinel@ecoequity.ai",
+              reason: data.message,
+              district: data.district || "Global Sector",
+              coordinates: [data.lat, data.lng]
+          });
+          console.log("[Agent] Report officially persisted to satellite DB.");
+      } catch (dbErr) {
+          console.error("[Agent] DB Write Error:", dbErr);
+      }
+      
+      // 3. Focus map on the new report locus
+      dispatch({ type: "SET_FOCUS_COORDS", payload: [data.lat, data.lng] });
+      dispatch({ type: "SET_VIEW", payload: "map" });
+    };
+
+    window.addEventListener('AGENT_SUBMIT_REPORT', handleAgentReport);
+    return () => window.removeEventListener('AGENT_SUBMIT_REPORT', handleAgentReport);
+  }, []);
 
   return (
     <AppContext.Provider value={{ state, dispatch }}>

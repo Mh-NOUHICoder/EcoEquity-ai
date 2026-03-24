@@ -39,6 +39,17 @@ import { calculateHeatRisk } from "@/utils/calculateHeatRisk";
 import { reverseGeocode } from "@/utils/reverseGeocode";
 import { useAppStore } from "@/store/useAppStore";
 
+// --- Validations ---
+const checkIsVal = (c: any): c is [number, number] => 
+    Array.isArray(c) && 
+    c.length === 2 && 
+    typeof c[0] === 'number' && 
+    typeof c[1] === 'number' && 
+    !isNaN(c[0]) && 
+    !isNaN(c[1]) &&
+    isFinite(c[0]) &&
+    isFinite(c[1]);
+
 // --- Constants ---
 const HUD_GLASS = `relative bg-[#05080D]/90 backdrop-blur-[40px] border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.05)]`;
 
@@ -250,34 +261,38 @@ const MapInitialFocus = ({ center }: { center: [number, number] }) => {
   const map = useMap();
   const { state } = useApp();
   const hasFocused = useRef(false);
-  const flyToCoords = useRef<string | null>(null);
 
   useEffect(() => {
-    const isVal = (c: any) => 
-      Array.isArray(c) && c.length === 2 && typeof c[0] === 'number' && typeof c[1] === 'number' && !isNaN(c[0]) && !isNaN(c[1]);
+      if (state.focusCoords) {
+          hasFocused.current = true;
+          return;
+      }
 
-    const coordKey = isVal(center) ? `${center[0].toFixed(4)},${center[1].toFixed(4)}` : null;
+      // 1. Priority: User Location
+      if (!hasFocused.current && state.userLocation && checkIsVal(state.userLocation)) {
+          try {
+              map.flyTo(state.userLocation as [number, number], 14, { duration: 3.5, animate: true, easeLinearity: 0.1 });
+              hasFocused.current = true;
+          } catch (e) {
+              console.error("[Map] flyTo userLocation failed", e);
+          }
+      }
+      
+      // 2. Fallback: Default Center
+      const timer = setTimeout(() => {
+          if (!hasFocused.current && checkIsVal(center) && center[0] !== 20) {
+              try {
+                  map.flyTo(center, 14, { duration: 3, animate: true });
+                  hasFocused.current = true;
+              } catch (e) {
+                  console.error("[Map] flyTo initialCenter failed", e);
+              }
+          }
+      }, 3000);
 
-    if (!state.focusCoords && isVal(center) && coordKey !== flyToCoords.current && !(center[0] === 20 && center[1] === 0)) {
-        try {
-            // Priority: if we have a user location, we should eventually fly to it on entry
-            // If the current center is the user location, we mark as focused
-            const isUserLoc = state.userLocation && 
-                             Math.abs(center[0] - state.userLocation[0]) < 0.001 && 
-                             Math.abs(center[1] - state.userLocation[1]) < 0.001;
-
-            if (!hasFocused.current || isUserLoc) {
-                map.flyTo(center, 14, { duration: 3.5, animate: true, easeLinearity: 0.1 });
-                flyToCoords.current = coordKey;
-                if (isUserLoc) hasFocused.current = true;
-            }
-        } catch (e) {
-            console.error("Map flyTo failed", e);
-        }
-    } else if (state.focusCoords) {
-        hasFocused.current = true;
-    }
+      return () => clearTimeout(timer);
   }, [center, map, state.focusCoords, state.userLocation]);
+
   return null;
 };
 
@@ -290,11 +305,8 @@ const MapFocusHandler = () => {
     const setAgentFocus = useAppStore(s => s.setFocusCoords);
     
     useEffect(() => {
-        const isVal = (c: any) => 
-            Array.isArray(c) && c.length === 2 && typeof c[0] === 'number' && typeof c[1] === 'number' && !isNaN(c[0]) && !isNaN(c[1]);
-
         // 1. AppContext focusCoords
-        if (state.focusCoords && isVal(state.focusCoords)) {
+        if (state.focusCoords && checkIsVal(state.focusCoords)) {
             const [lat, lng] = state.focusCoords;
             const coordKey = `${lat.toFixed(5)},${lng.toFixed(5)}`;
             
@@ -332,13 +344,20 @@ const MapFocusHandler = () => {
         }
 
         // 2. Zustand Store focusCoords (Agent Focus)
-        if (agentFocus) {
+        if (agentFocus && agentFocus.lat !== undefined && agentFocus.lng !== undefined) {
             const coordKey = `agent-${agentFocus.lat.toFixed(5)},${agentFocus.lng.toFixed(5)}`;
             if (lastFlownTo.current !== coordKey) {
                 lastFlownTo.current = coordKey;
-                map.flyTo([agentFocus.lat, agentFocus.lng], 16, { duration: 3, animate: true });
-                setAgentFocus(null);
+                if (!isNaN(agentFocus.lat) && !isNaN(agentFocus.lng)) {
+                    try {
+                        map.flyTo([agentFocus.lat, agentFocus.lng], 16, { duration: 3, animate: true });
+                    } catch (e) {
+                         console.error("[Map] flyTo agentFocus failed", e);
+                    }
+                }
             }
+            // Always clear to prevent stale locks
+            setAgentFocus(null);
         }
 
         if (state.selectedFeature) {
@@ -347,13 +366,17 @@ const MapFocusHandler = () => {
                 ? [feat.geometry.coordinates[1], feat.geometry.coordinates[0]]
                 : [feat.geometry.coordinates[0][0][1], feat.geometry.coordinates[0][0][0]];
             
-            if (isVal(coords)) {
+            if (checkIsVal(coords)) {
                 const currentCenter = map.getCenter();
                 const dist = Math.sqrt(Math.pow(currentCenter.lat - (coords[0] as number), 2) + Math.pow(currentCenter.lng - (coords[1] as number), 2));
                 const coordKey = `feat-${feat.properties.name}`;
                 if (dist > 0.005 && lastFlownTo.current !== coordKey) {
                     lastFlownTo.current = coordKey;
-                    map.flyTo(coords as [number, number], 16, { duration: 2.5, animate: true });
+                    try {
+                        map.flyTo(coords as [number, number], 16, { duration: 2.5, animate: true });
+                    } catch (e) {
+                        console.error("[Map] flyTo selectedFeature failed", e);
+                    }
                 }
             }
         }
@@ -428,12 +451,10 @@ export default function EcoMap() {
   const defaultCenter: [number, number] = [30.998043, -6.755833];
   
   const initialCenter = useMemo(() => {
-    const isVal = (c: any) => Array.isArray(c) && c.length === 2 && typeof c[0] === 'number' && typeof c[1] === 'number' && !isNaN(c[0]) && !isNaN(c[1]);
-    
     // Priority: 1. User Location (Most relevant for "Fly to local on entry")
     // 2. Last known map center
-    if (isVal(state.userLocation)) return state.userLocation as [number, number];
-    if (isVal(state.lastMapCenter)) return state.lastMapCenter as [number, number];
+    if (checkIsVal(state.userLocation)) return state.userLocation as [number, number];
+    if (checkIsVal(state.lastMapCenter)) return state.lastMapCenter as [number, number];
     return defaultCenter;
   }, [state.userLocation, state.lastMapCenter]);
 
@@ -571,8 +592,8 @@ export default function EcoMap() {
                   )}
                   <div className="flex-1 min-w-0"><MapSearch /></div>
                   <div className={`${HUD_GLASS} px-2 py-2 rounded-3xl border-emerald-500/20 flex items-center gap-1 shadow-2xl shrink-0`}>
-                    <button onClick={() => dispatch({ type: "TOGGLE_HEAT_RISK" })} className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${!state.heatRiskMode ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}`}>Grid</button>
-                    <button onClick={() => dispatch({ type: "TOGGLE_HEAT_RISK" })} className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${state.heatRiskMode ? 'bg-emerald-500/10 text-emerald-400' : 'text-white/40 hover:text-white/60'}`}><Zap size={12} />Risk</button>
+                    <button onClick={() => dispatch({ type: "TOGGLE_HEAT_RISK" })} className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${!state.heatRiskMode ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}`}>CANOPY</button>
+                    <button onClick={() => dispatch({ type: "TOGGLE_HEAT_RISK" })} className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${state.heatRiskMode ? 'bg-emerald-500/10 text-emerald-400' : 'text-white/40 hover:text-white/60'}`}><Zap size={12} />HEAT MAP</button>
                   </div>
               </div>
 

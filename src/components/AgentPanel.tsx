@@ -28,6 +28,9 @@ import { useTranslation } from "react-i18next";
 import { useLiveAgent } from '../agent/useLiveAgent';
 import { useAppStore } from '../store/useAppStore';
 
+// --- Constants for Premium HUD ---
+const HUD_GLASS = `relative bg-[#05080D]/90 backdrop-blur-[40px] border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.05)]`;
+
 export const AgentPanel: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { 
@@ -280,66 +283,86 @@ export const AgentPanel: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* MODERN AGENT BUTTON (Unified Telemetry Trigger) */}
-      <motion.button 
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={() => setIsOpen(!isOpen)}
-        className="pointer-events-auto h-20 w-64 bg-slate-950/90 backdrop-blur-3xl border border-white/10 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center p-3 gap-4 group transition-all duration-500 hover:border-emerald-500/30 overflow-hidden"
-        style={{ borderColor: isOpen ? `${agentColor}88` : '' }}
-      >
-        {/* Glowing Indicator Visual */}
-        <div className="relative shrink-0">
-            <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-emerald-500/10 transition-colors relative overflow-hidden">
-                {isOpen ? <MessageSquare size={24} className="text-white animate-pulse" /> : <Radar size={24} className="text-white/40 group-hover:text-white transition-colors animate-pulse" />}
-                
-                {agentMuted && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-red-950/20 backdrop-blur-[1px]">
-                        <VolumeX size={16} className="text-red-500/60" />
-                    </div>
-                )}
+      {/* MODERN AGENT TRIGGER: NEURAL PULSE */}
+      <div className="relative pointer-events-auto group/pulse">
+        {/* Glow Aura */}
+        <div className={`absolute inset-0 bg-emerald-500/20 blur-[30px] rounded-full scale-150 transition-all duration-700 ${isOpen ? 'opacity-40 animate-pulse' : 'opacity-0'}`} />
+        
+        <motion.button 
+          whileHover={{ scale: 1.05, rotate: [0, -2, 2, 0] }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => setIsOpen(!isOpen)}
+          className={`
+            relative z-10 w-20 h-20 rounded-[2rem] 
+            flex flex-col items-center justify-center 
+            transition-all duration-500 overflow-hidden
+            ${HUD_GLASS} border-emerald-500/20 shadow-[0_20px_40px_rgba(0,0,0,0.8)]
+            hover:border-emerald-500/50 hover:shadow-emerald-500/10
+          `}
+          style={{ borderColor: isOpen ? `${agentColor}cc` : '' }}
+        >
+          {/* Internal Neural Ring */}
+          <motion.div 
+            animate={{ rotate: 360 }}
+            transition={{ repeat: Infinity, duration: 8, ease: "linear" }}
+            className="absolute inset-2 border-[0.5px] border-emerald-500/10 border-dashed rounded-[1.5rem] opacity-40 pointer-events-none"
+          />
+          <motion.div 
+            animate={{ rotate: -360 }}
+            transition={{ repeat: Infinity, duration: 12, ease: "linear" }}
+            className="absolute inset-4 border-[0.5px] border-cyan-500/10 border-dashed rounded-[1rem] opacity-20 pointer-events-none"
+          />
 
-                <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 6, ease: "linear" }} className="absolute inset-0 border-[0.5px] border-white/5 rounded-2xl" />
-            </div>
-            {agentStatus !== 'idle' && (
-                <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full border-2 border-slate-950 animate-pulse shadow-lg" style={{ backgroundColor: agentColor }} />
+          {/* Central Core Icon */}
+          <div className="relative z-20 flex items-center justify-center">
+             <AnimatePresence mode="wait">
+                {isOpen ? (
+                    <motion.div key="open" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                        <X size={26} className="text-emerald-400 drop-shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+                    </motion.div>
+                ) : (
+                    <motion.div key="closed" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} className="flex flex-col items-center gap-1.5 translate-y-1">
+                        <Cpu size={24} className={`transition-all duration-500 ${isProcessing ? 'text-emerald-400 animate-spin-slow' : 'text-white/60 group-hover/pulse:text-white'}`} />
+                        <span className="text-[7px] font-black text-white/30 tracking-[0.3em] uppercase group-hover/pulse:text-emerald-400/60 transition-colors">Core</span>
+                    </motion.div>
+                )}
+             </AnimatePresence>
+          </div>
+
+          {/* Activity Scanline */}
+          <motion.div 
+            animate={{ y: ["-100%", "200%"] }}
+            transition={{ repeat: Infinity, duration: 3, ease: "linear" }}
+            className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-emerald-400/40 to-transparent pointer-events-none"
+          />
+        </motion.button>
+
+        {/* Message Notifications Badge */}
+        <AnimatePresence>
+          {agentMessages.length > 0 && !isOpen && (
+            <motion.div 
+              initial={{ scale: 0, x: 10, y: -10 }}
+              animate={{ scale: 1, x: 0, y: 0 }}
+              exit={{ scale: 0 }}
+              className="absolute -top-2 -right-2 z-30 w-7 h-7 bg-emerald-500 rounded-full border-2 border-slate-950 flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.5)] ring-1 ring-emerald-500/50"
+            >
+              <span className="text-[10px] font-black text-white leading-none tabular-nums">
+                {agentMessages.length}
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Status Indicator Pulse */}
+        <div className="absolute -bottom-1 -left-1 z-30 flex items-center gap-2 pointer-events-none">
+            <div className={`w-3.5 h-3.5 rounded-full border-2 border-slate-950 shadow-lg ${agentStatus !== 'idle' ? 'animate-pulse' : 'opacity-40 grayscale'}`} style={{ backgroundColor: agentColor }} />
+            {!isOpen && (
+                <div className="bg-slate-950/80 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/10 opacity-0 group-hover/pulse:opacity-100 transition-opacity translate-y-1">
+                    <span className="text-[7px] font-bold text-white/60 uppercase tracking-widest">{t(agentStatus)}</span>
+                </div>
             )}
         </div>
-
-        {/* Unified Telemetry Feed */}
-        <div className="flex flex-col text-left overflow-hidden">
-            <div className="flex items-center gap-1.5">
-                <span className="text-xs font-black text-white uppercase tracking-[0.2em]">Eco-Equity</span>
-                <div className={`w-1.5 h-1.5 rounded-full ${agentStatus === 'idle' ? 'bg-white/10' : 'bg-emerald-500 animate-pulse'}`} />
-            </div>
-            <div className="flex flex-col mt-0.5">
-                <span className="text-[10px] font-mono text-white/30 uppercase tracking-[0.2em] truncate">
-                   CORE-{activeModel.split('-')[1] || 'v1.5'}
-                </span>
-                <AnimatePresence mode="wait">
-                    <motion.span 
-                        key={agentMessages.length}
-                        initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}
-                        className="text-[9px] font-black text-emerald-500/60 uppercase tracking-widest mt-0.5"
-                    >
-                        LINK_TX: {agentMessages.length.toString().padStart(2, '0')}
-                    </motion.span>
-                </AnimatePresence>
-            </div>
-        </div>
-
-        {/* Dynamic Activity Waves */}
-        <div className="ml-auto pr-2 flex items-end gap-0.5 h-4 opacity-20 group-hover:opacity-60 transition-opacity">
-            {[1, 2, 3, 4].map(i => (
-                <motion.div 
-                    key={i} 
-                    animate={{ height: isProcessing ? [4, 16, 4] : [4, 6, 4] }} 
-                    transition={{ repeat: Infinity, duration: 0.5, delay: i * 0.1 }} 
-                    className="w-0.5 bg-emerald-400 rounded-full" 
-                />
-            ))}
-        </div>
-      </motion.button>
+      </div>
 
     </div>
   );

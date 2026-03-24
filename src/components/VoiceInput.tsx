@@ -27,7 +27,14 @@ export const VoiceInput: React.FC = () => {
     // Volume Analysis Loop
     const startVolumeAnalysis = async () => {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            // Optimized constraints for analysis without triggering "Communication Mode" ducking
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                audio: { 
+                    echoCancellation: false, 
+                    autoGainControl: false, 
+                    noiseSuppression: false 
+                } 
+            });
             const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
             const analyser = audioContext.createAnalyser();
             const source = audioContext.createMediaStreamSource(stream);
@@ -65,22 +72,28 @@ export const VoiceInput: React.FC = () => {
             return;
         }
 
-        // Pre-warm Speech Synthesis
-        if (window.speechSynthesis) {
-            const utterance = new SpeechSynthesisUtterance("");
-            window.speechSynthesis.speak(utterance);
-        }
-
         const recognition = new SpeechRecognition();
         recognitionRef.current = recognition;
-        recognition.lang = 'en-US';
+        
+        const currentLang = i18n.language || 'en';
+        const langMap: Record<string, string> = {
+            'en': 'en-US', 'ar': 'ar-SA', 'es': 'es-ES', 'fr': 'fr-FR', 'de': 'de-DE'
+        };
+        
+        recognition.lang = langMap[currentLang.split('-')[0]] || currentLang || navigator.language || 'en-US';
         recognition.interimResults = true;
+        recognition.continuous = false; // Ensure it doesn't stay open too long
 
         recognition.onstart = () => {
             setIsListening(true);
             setTranscript('');
             transcriptRef.current = '';
             startVolumeAnalysis();
+            
+            // Set Media Session to prevent audio ducking/muting on mobile and desktop
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.playbackState = 'playing';
+            }
         };
 
         recognition.onresult = (event: any) => {
@@ -103,8 +116,12 @@ export const VoiceInput: React.FC = () => {
         recognition.onend = () => {
             setIsListening(false);
             stopVolumeAnalysis();
+            
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.playbackState = 'none';
+            }
+
             const final = transcriptRef.current;
-            console.log(`[Voice] Recording ended. Final text: "${final}"`);
             if (final.trim() && !isProcessing) {
                 sendMessage(final);
             }
@@ -117,13 +134,12 @@ export const VoiceInput: React.FC = () => {
         };
 
         recognition.start();
-    }, [isProcessing, sendMessage]);
+    }, [isProcessing, sendMessage, i18n.language]);
 
     const stopRecording = useCallback(() => {
         if (recognitionRef.current) {
             recognitionRef.current.stop();
         }
-        setIsListening(false);
     }, []);
 
     return (
