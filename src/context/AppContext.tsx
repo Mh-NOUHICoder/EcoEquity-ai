@@ -205,6 +205,39 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('AGENT_SUBMIT_REPORT', handleAgentReport);
   }, []);
 
+  // AUTO-DETECT LOCATION ON STARTUP (VPN/IP AWARE)
+  useEffect(() => {
+    if (!state.isHydrated) return;
+
+    // Only auto-detect if we don't have a recent userLocation or if center is default
+    const isDefaultCenter = state.lastMapCenter && 
+                           Math.abs(state.lastMapCenter[0] - 30.998) < 0.01 && 
+                           Math.abs(state.lastMapCenter[1] - (-6.755)) < 0.01;
+
+    if (navigator.geolocation && (!state.userLocation || isDefaultCenter)) {
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const newLoc: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+                
+                // Significant change check (~5km)
+                const isSignificantChange = !state.userLocation || 
+                    Math.abs(state.userLocation[0] - newLoc[0]) > 0.05 || 
+                    Math.abs(state.userLocation[1] - newLoc[1]) > 0.05;
+
+                if (isSignificantChange || isDefaultCenter) {
+                    console.log("[Location] VPN/Position change detected:", newLoc);
+                    dispatch({ type: "SET_USER_LOCATION", payload: newLoc });
+                    
+                    // If it's a major jump, force a focal scan of the new area
+                    dispatch({ type: "SET_FOCUS_COORDS", payload: newLoc });
+                }
+            },
+            (err) => console.log("[Location] Detection blocked or failed:", err.message),
+            { enableHighAccuracy: false, timeout: 5000, maximumAge: 600000 }
+        );
+    }
+  }, [state.isHydrated]); // Simplified dependencies to run on startup/re-hydration
+
   return (
     <AppContext.Provider value={{ state, dispatch }}>
       {children}

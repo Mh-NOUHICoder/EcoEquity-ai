@@ -319,9 +319,15 @@ const FloatingAnalysisPanel = () => {
                         <div className="flex items-start justify-between gap-4">
                             <div className="space-y-1 flex-1">
                                 <h3 className="text-xl font-black text-white uppercase tracking-tight truncate">{feature.properties.name}</h3>
-                                <div className="flex items-center gap-2">
-                                    <MapPin size={10} className="text-cyan-400" />
-                                    <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em]">{feature.properties.district}</span>
+                                <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <MapPin size={10} className="text-cyan-400" />
+                                        <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em]">{feature.properties.district}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 px-2 py-0.5 rounded-md bg-white/5 border border-white/10">
+                                        <Calendar size={8} className="text-emerald-400" />
+                                        <span className="text-[8px] font-black text-white/50 uppercase tracking-[0.1em]">DATA: MAR 24, 2026</span>
+                                    </div>
                                 </div>
                             </div>
                             <div className="relative w-14 h-14 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-emerald-500/5 group/viz">
@@ -436,6 +442,14 @@ const SentinelMap: React.FC = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [activeMobileCard, setActiveMobileCard] = useState<string | null>(null);
   const [showReports, setShowReports] = useState(true);
+  const [zoom, setZoom] = useState(3);
+
+  const ZoomListener = () => {
+    const map = useMapEvents({
+      zoomend: () => setZoom(map.getZoom()),
+    });
+    return null;
+  };
 
   // Synchronize currentCenter if initialCenter changes
   useEffect(() => {
@@ -489,13 +503,19 @@ const SentinelMap: React.FC = () => {
                     icon: L.divIcon({
                       className: 'tactical-sector-icon',
                       html: `
-                        <div class="relative flex items-center justify-center transition-all duration-500 scale-${isSelected ? '125' : '100'}">
-                          <div class="absolute w-8 h-8 rounded-full bg-emerald-500/10 animate-pulse"></div>
-                          <div class="absolute w-3 h-3 rounded-full border border-white/50 shadow-[0_0_10px_${color}88]" style="background-color: ${color};"></div>
-                          ${isSelected ? `<div class="absolute -inset-1 border border-emerald-400/50 rounded-full animate-ping"></div>` : ''}
+                        <div class="relative group flex items-center justify-center transition-all duration-500 scale-[${Math.max(0.2, (zoom - 2) / 10) * (isSelected ? 1.4 : 1)}]">
+                          <div class="absolute w-12 h-12 rounded-full ${color === '#ef4444' ? 'bg-red-500/20' : color === '#f59e0b' ? 'bg-amber-500/20' : 'bg-emerald-500/20'} animate-pulse"></div>
+                          <div class="absolute w-5 h-5 rounded-full border-2 border-white shadow-[0_0_25px_${color}cc] select-none" style="background-color: ${color};"></div>
+                          ${isSelected ? `<div class="absolute w-10 h-10 border-2 border-white/80 rounded-full animate-ping"></div>` : ''}
+                          <div class="absolute -top-12 px-2 py-1 bg-black/90 backdrop-blur-md border border-white/20 rounded-xl pointer-events-none opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 whitespace-nowrap z-[2000] shadow-2xl">
+                             <div class="flex items-center gap-2">
+                                <div class="w-1.5 h-1.5 rounded-full" style="background-color: ${color};"></div>
+                                <span class="text-[9px] font-black text-white uppercase tracking-[0.2em]">${feature.properties.name}</span>
+                             </div>
+                          </div>
                         </div>
                       `,
-                      iconSize: [32, 32], iconAnchor: [16, 16]
+                      iconSize: [48, 48], iconAnchor: [24, 24]
                     })
                   });
                 }}
@@ -518,11 +538,15 @@ const SentinelMap: React.FC = () => {
                   },
                   mouseover: (e) => {
                     const l = e.target;
-                    l.setStyle({ fillOpacity: 0.6, weight: 3 });
+                    if (l.setStyle) {
+                        l.setStyle({ fillOpacity: 0.6, weight: 3 });
+                    }
                   },
                   mouseout: (e) => {
                     const l = e.target;
-                    l.setStyle({ fillOpacity: 0.4, weight: 1.5 });
+                    if (l.setStyle) {
+                        l.setStyle({ fillOpacity: 0.4, weight: 1.5 });
+                    }
                   }
                 });
               }}
@@ -530,21 +554,24 @@ const SentinelMap: React.FC = () => {
             <Marker position={state.userLocation ?? currentCenter} icon={L.divIcon({
                 className: 'user-lock-icon',
                 html: `
-                    <div class="relative group" style="width: 60px; height: 60px; display: flex; align-items: center; justify-content: center;">
-                        <div class="absolute w-12 h-12 bg-cyan-500/10 rounded-full animate-ping"></div>
-                        <div class="absolute w-6 h-6 bg-cyan-400 rounded-full border-2 border-white shadow-[0_0_20px_rgba(34,211,238,1)] flex items-center justify-center">
-                            <div class="w-1.5 h-1.5 bg-white rounded-full"></div>
+                    <div class="relative group flex items-center justify-center transition-all duration-500 scale-[${Math.max(0.4, zoom / 15)}]" style="width: 80px; height: 80px;">
+                        <div class="absolute w-20 h-20 bg-cyan-500/10 rounded-full animate-ping"></div>
+                        <div class="absolute w-14 h-14 bg-cyan-500/20 rounded-full animate-pulse border border-cyan-500/30"></div>
+                        <div class="absolute w-8 h-8 bg-cyan-400 rounded-full border-2 border-white shadow-[0_0_35px_rgba(34,211,238,1)] flex items-center justify-center">
+                            <div class="w-2.5 h-2.5 bg-white rounded-full"></div>
                         </div>
-                        <div class="absolute -top-14 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none bg-[#0A0F1A]/90 px-4 py-1.5 rounded-xl border border-white/10 backdrop-blur-xl text-[9px] font-black text-white uppercase tracking-[0.2em] whitespace-nowrap shadow-2xl">
-                           <div class="flex items-center gap-2">
-                                <div class="w-1 h-1 rounded-full bg-cyan-400 animate-pulse"></div>
-                                ${t('targetLockCoords')}
+                        <div class="absolute -top-16 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 pointer-events-none bg-[#0A0F1A]/95 px-5 py-2 rounded-2xl border border-white/20 backdrop-blur-3xl text-[10px] font-black text-white uppercase tracking-[0.3em] whitespace-nowrap shadow-3xl z-[2000]">
+                           <div class="flex items-center gap-3">
+                                <div class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></div>
+                                ${t('targetLockCoords') || "Target Lock"}
                            </div>
                         </div>
                     </div>
                 `,
-                iconSize: [60, 60], iconAnchor: [30, 30]
+                iconSize: [80, 80], iconAnchor: [40, 40]
             })} />
+
+            <ZoomListener />
 
             <MapMoveHandler onMove={setCurrentCenter} />
             <MapFocusHandler />
@@ -680,8 +707,15 @@ const SentinelMap: React.FC = () => {
                                 </div>
                                 <div className="space-y-1 border-l border-white/5 pl-4">
                                     <span className="text-[8px] font-black text-white/30 uppercase tracking-widest">{t('atmosphere')}</span>
-                                    <div className="text-[10px] font-mono font-black text-emerald-400 uppercase">{t('pristine')}</div>
+                                    <div className="text-[10px] font-mono font-black text-emerald-400 uppercase tracking-tight">{t('pristine')}</div>
                                 </div>
+                            </div>
+                            <div className="mt-6 flex items-center justify-between border-t border-white/5 pt-4">
+                                <div className="flex items-center gap-2">
+                                    <Calendar size={10} className="text-emerald-400" />
+                                    <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.2em] italic">LATEST ACQUISITION: 24 MAR</span>
+                                </div>
+                                <div className="text-[8px] font-black text-white/20 uppercase tracking-widest tabular-nums">SENTINEL-L2A</div>
                             </div>
                         </div>
                    </div>
@@ -734,12 +768,19 @@ const SentinelMap: React.FC = () => {
                         <SmoothValue value={hoveredCell.ndvi} />
                     </div>
                     <div className="mt-2 text-[9px] font-mono font-black text-emerald-400 uppercase tracking-widest">ELEV: {hoveredCell.elevation}m</div>
-                </div>
-                <div className="mt-3 flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: getColor(hoveredCell.ndvi) }} />
-                    <span className="text-[10px] font-black text-white/50 uppercase">{getHeatLevel(hoveredCell.ndvi) === 'critical' ? t('criticalRiskArea') : getHeatLevel(hoveredCell.ndvi) === 'moderate' ? t('moderateStressZone') : t('stableEcosystem')}</span>
+                <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full shadow-[0_0_8px_currentColor]" style={{ backgroundColor: getColor(hoveredCell.ndvi), color: getColor(hoveredCell.ndvi) }} />
+                        <span className="text-[10px] font-black text-white/50 uppercase">{getHeatLevel(hoveredCell.ndvi) === 'critical' ? t('criticalRiskArea') : getHeatLevel(hoveredCell.ndvi) === 'moderate' ? t('moderateStressZone') : t('stableEcosystem')}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-white/5">
+                        <Calendar size={10} className="text-emerald-400" />
+                        <span className="text-[8px] font-black text-white/30 uppercase">MAR 24</span>
+                    </div>
                 </div>
             </div>
+        </div>
+          
           </motion.div>
         )}
       </AnimatePresence>

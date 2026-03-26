@@ -38,7 +38,7 @@ export const translations: Record<Language, any> = {
     aiInsights: "Eco Insights",
     geminiCore: "Gemini AI",
     districtAnalysis: "District Environmental Analysis",
-    selectLocation: "Select Location for Analysis",
+    selectLocationForAnalysis: "Select Location for Analysis",
     satelliteFeed: "Satellite Data Feed",
     spectralCapture: "Spectral Capture",
     activeOps: "Active",
@@ -220,7 +220,11 @@ export const translations: Record<Language, any> = {
     commLinkFault: "Comm Link Fault",
     reInit: "Re-init",
     recover: "Recover",
-    environmentStandby: "Environment Standby"
+    environmentStandby: "Environment Standby",
+    dataSecure: "Data Secure",
+    scanning: "Scanning",
+    scanExternal: "Scan External",
+    scanningForLocalPoints: "Scanning for local points..."
   },
   fr: {
     dashboard: "Tableau de Bord",
@@ -259,7 +263,7 @@ export const translations: Record<Language, any> = {
     aiInsights: "Analyses Éco",
     geminiCore: "IA Gemini",
     districtAnalysis: "Analyse Environnementale du District",
-    selectLocation: "Sélectionner Lieu pour Analyse",
+    selectLocationForAnalysis: "Sélectionner Lieu pour Analyse",
     satelliteFeed: "Flux de Données Satellite",
     spectralCapture: "Capture Spectrale",
     activeOps: "Actif",
@@ -426,7 +430,11 @@ export const translations: Record<Language, any> = {
     commLinkFault: "Défaut de liaison",
     reInit: "Ré-init",
     recover: "Récupérer",
-    environmentStandby: "Veille Environnementale"
+    environmentStandby: "Veille Environnementale",
+    dataSecure: "Données Sécurisées",
+    scanning: "Balayage",
+    scanExternal: "Scan Externe",
+    scanningForLocalPoints: "Balayage des points locaux..."
   },
   ar: {
     dashboard: "لوحة القيادة",
@@ -465,7 +473,7 @@ export const translations: Record<Language, any> = {
     aiInsights: "رؤى بيئية",
     geminiCore: "ذكاء جمناي",
     districtAnalysis: "التحليل البيئي للمناطق",
-    selectLocation: "اختر موقعاً للتحليل",
+    selectLocationForAnalysis: "اختر موقعاً للتحليل",
     satelliteFeed: "بيانات القمر الصناعي",
     spectralCapture: "التقاط طيفي",
     activeOps: "نشط",
@@ -650,7 +658,11 @@ export const translations: Record<Language, any> = {
     commLinkFault: "خطأ في الاتصال",
     reInit: "إعادة تهيئة",
     recover: "استعادة",
-    environmentStandby: "البيئة في وضع الاستعداد"
+    environmentStandby: "البيئة في وضع الاستعداد",
+    dataSecure: "البيانات مؤمنة",
+    scanning: "جاري المسح",
+    scanExternal: "مسح خارجي",
+    scanningForLocalPoints: "جاري البحث عن نقاط محلية..."
   },
   es: {
     dashboard: "Panel de Control",
@@ -689,7 +701,7 @@ export const translations: Record<Language, any> = {
     aiInsights: "Perspectivas Eco",
     geminiCore: "IA Gemini",
     districtAnalysis: "Análisis Ambiental de Distrito",
-    selectLocation: "Seleccionar Ubicación para Análisis",
+    selectLocationForAnalysis: "Seleccionar Ubicación para Análisis",
     satelliteFeed: "Datos Satelitales",
     spectralCapture: "Captura Espectral",
     activeOps: "Activo",
@@ -856,6 +868,10 @@ export const translations: Record<Language, any> = {
     commLinkFault: "Fallo de comunicación",
     reInit: "Reiniciar",
     recover: "Recuperar",
-    environmentStandby: "Ambiente en Espera"
+    environmentStandby: "Ambiente en Espera",
+    dataSecure: "Datos Seguros",
+    scanning: "Escaneando",
+    scanExternal: "Escaneo Externo",
+    scanningForLocalPoints: "Escaneando puntos locales..."
   }
 };
