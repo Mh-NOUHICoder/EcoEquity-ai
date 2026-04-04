@@ -98,6 +98,41 @@ A premium aerospace-grade interface providing direct access to **Sentinel Hub ST
 
 ---
 
+## 📁 Project Structure
+
+A comprehensive breakdown of the `eco-equity-ai` ecosystem and the specific role of each main directory and file.
+
+```text
+eco-equity-ai/
+├── public/                 # Static assets (images, icons, map overlays)
+├── src/                    # Main source code for Next.js application
+│   ├── agent/              # AI Agent ecosystem (Gemini Live configs, function calling tools)
+│   ├── app/                # Next.js App Router (Pages, core layouts, API endpoints)
+│   │   ├── admin/          # Model and admin dashboard pages
+│   │   ├── api/            # Serverless backend routes (Vertex AI orchestration, Sentinel routes)
+│   │   └── debug/          # Developer tooling and test pages 
+│   ├── components/         # Reusable React components
+│   │   ├── layout/         # High-level page wrappers
+│   │   ├── maps/           # Map-related components (Leaflet mounts, Heatrisk layers)
+│   │   └── ui/             # General interface elements (Panels, buttons, loaders)
+│   ├── context/            # React Context providers (Global state management)
+│   ├── hooks/              # Custom React hooks (e.g., useGeminiLive for agent state)
+│   ├── lib/                # Configs & Clients (Gemini, Supabase, Sentinel Hub API config)
+│   ├── services/           # Service handlers (calculating heat risk metrics)
+│   ├── store/              # Global state management (Zustand state managers)
+│   ├── types/              # TypeScript typings and interfaces
+│   └── utils/              # Helper functions (geocoding, geometry math)
+├── .env.local              # Local environment variables (API credentials)
+├── eslint.config.mjs       # Code linting rules
+├── next.config.mjs         # Next.js build and optimization configuration
+├── package.json            # Project dependencies and npm scripts
+├── postcss.config.js       # PostCSS config (required for Tailwind)
+├── tailwind.config.ts      # Tailwind CSS theme overrides (colors, breakpoints)
+└── tsconfig.json           # TypeScript strict configuration
+```
+
+---
+
 ## 🚀 Deployment & Configuration
 
 ### 1. Initialization
